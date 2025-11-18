@@ -1,0 +1,46 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+
+# Virtual environment
+venv/
+env/
+ENV/
+.venv
+
+# IDE e editor
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Sistema operativo
+.DS_Store
+Thumbs.db
+.DS_Store?
+
+# Jupyter Notebook
+.ipynb_checkpoints
+*.ipynb_checkpoints
+
+# File temporanei Python
+*.log
+*.pot
+*.pyc
+
+# Modelli salvati (machine learning)
+*.pkl
+*.joblib
+*.h5
+*.model
+
+# PDF di riferimento
+# *.pdf
+
+# File di dati temporanei
+*.tmp
+*.cache
