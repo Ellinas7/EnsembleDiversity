@@ -1,4 +1,5 @@
 import numpy as np
+from sklearn.preprocessing import LabelEncoder
 
 # Import dataset
 from datasets.dataset import dataset
@@ -49,7 +50,6 @@ def calculate_all_diversity_metrics(model, model_name, X_test, y_test):
         y_test_array = y_test.values if hasattr(y_test, 'values') else y_test
         if y_test_array.dtype == object or str(y_test_array.dtype).startswith('str'):
             # Label stringhe - convertiamo usando mapping
-            from sklearn.preprocessing import LabelEncoder
             le = LabelEncoder()
             y_test_numeric = le.fit_transform(y_test_array)
         else:
