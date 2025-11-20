@@ -2,7 +2,7 @@ import numpy as np
 from abstract_rejection_decorator import AbstractRejectionDecorator
 
 
-class PercentileThresholdRejectionDecorator(AbstractRejectionDecorator):
+class percentile_threshold_rejection_decorator(AbstractRejectionDecorator):
     """
     Decorator che implementa rejection con soglia basata su percentile.
     
