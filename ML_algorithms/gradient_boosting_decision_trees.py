@@ -4,7 +4,7 @@ from sklearn.preprocessing import LabelEncoder
 import numpy as np
 
 
-class gradient_boosting(ML_algorithm):
+class gradient_boosting_decision_trees(ML_algorithm):
     """Gradient Boosting Decision Trees (GBDT) Classifier"""
     
     def __init__(self, n_estimators: int = 2, random_state: int = 42, 
