@@ -97,3 +97,29 @@ class gradient_boosting(ML_algorithm):
             predictions_numeric = np.array([le.transform(pred) for pred in predictions])
         
         return predictions_numeric
+    
+    def _get_estimator_confidences(self, X_test: np.ndarray) -> np.ndarray:
+        """
+        Estrae confidence degli ensemble parziali di Gradient Boosting.
+        
+        Usa staged_predict_proba per ottenere le probabilità a ogni stadio
+        e calcola la confidence come probabilità massima.
+        
+        Returns:
+            Array shape (n_estimators, n_samples) con le confidence
+        """
+        if self.model is None:
+            raise ValueError("Modello non ancora addestrato.")
+        
+        # Converti in numpy array se necessario
+        if hasattr(X_test, 'values'):
+            X_test = X_test.values
+        
+        # staged_predict_proba genera le probabilità per ogni stadio
+        confidences = []
+        for stage_proba in self.model.staged_predict_proba(X_test):
+            # Confidence = probabilità massima
+            max_conf = np.max(stage_proba, axis=1)
+            confidences.append(max_conf)
+        
+        return np.array(confidences)
