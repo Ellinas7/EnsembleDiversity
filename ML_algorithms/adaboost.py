@@ -40,3 +40,14 @@ class adaboost(ML_algorithm):
             predictions_numeric = np.array([le.transform(pred) for pred in predictions])
         
         return predictions_numeric
+    
+    def _get_estimator_confidences(self, X_test: np.ndarray) -> np.ndarray:
+        """Estrae confidence di ogni weak learner di AdaBoost"""
+        confidences = []
+        
+        for estimator in self.model.estimators_:
+            probas = estimator.predict_proba(X_test)
+            max_conf = np.max(probas, axis=1)
+            confidences.append(max_conf)
+        
+        return np.array(confidences)

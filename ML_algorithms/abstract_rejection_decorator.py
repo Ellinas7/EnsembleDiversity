@@ -80,9 +80,43 @@ class abstract_rejection_decorator(ABC):
         return self.base_algorithm.model.predict_proba(X_test)
     
     def get_estimator_predictions(self, X_test: np.ndarray) -> np.ndarray:
-        """Delega al modello base"""
-        return self.base_algorithm.get_estimator_predictions(X_test)
+        """
+        Estrae predizioni dei singoli estimatori CON rejection applicato.
+        
+        Applica la logica di rejection a ogni estimatore individualmente,
+        così le metriche di diversity possono operare anche su predizioni
+        che contengono "reject".
+        """
+        # Ottieni predizioni base (senza rejection)
+        base_predictions = self.base_algorithm.get_estimator_predictions(X_test)
     
+        # Ottieni confidence per ogni estimatore
+        estimator_confidences = self._get_estimator_confidences(X_test)
+    
+        # Calcola soglia
+        # Usiamo le confidence dell'ensemble completo per calcolare la soglia
+        # (come fa predict())
+        probas = self.predict_proba(X_test)
+        max_confidences = np.max(probas, axis=1)
+        threshold = self._calculate_threshold(max_confidences)
+    
+        # Applica rejection a ogni estimatore
+        predictions_with_reject = np.empty_like(base_predictions, dtype=object)
+
+        # Per ogni estimatore applica rejection basato sulla confidence di questo estimatore 
+        for i in range(base_predictions.shape[0]):
+            predictions_with_reject[i] = np.where(
+            estimator_confidences[i] >= threshold,
+            base_predictions[i],
+            self.rejection_label
+        )
+    
+        return predictions_with_reject
+
+    def _get_estimator_confidences(self, X_test: np.ndarray) -> np.ndarray:
+        """Ottiene confidence dal base algorithm"""
+        return self.base_algorithm._get_estimator_confidences(X_test)
+        
     def get_confidence_scores(self, X_test: np.ndarray) -> np.ndarray:
         """
         Restituisce gli score di confidenza per ogni campione.

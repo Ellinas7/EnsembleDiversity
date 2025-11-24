@@ -135,3 +135,31 @@ class xgboost(ML_algorithm):
         predictions_numeric = np.array(predictions).astype(int)
         
         return predictions_numeric
+    
+    def _get_estimator_confidences(self, X_test: np.ndarray) -> np.ndarray:
+        """
+        Estrae le confidence degli ensemble PARZIALI di XGBoost.
+        
+        Per ogni iterazione i, calcola predict_proba con iteration_range=(0, i+1)
+        e prende la probabilità massima come confidence.
+        
+        Returns:
+            Array shape (n_estimators, n_samples) con le confidence
+        """
+        if self.model is None:
+            raise ValueError("Modello non ancora addestrato.")
+        
+        # Converti in numpy array se necessario
+        if hasattr(X_test, 'values'):
+            X_test = X_test.values
+        
+        confidences = []
+        
+        for i in range(self.model.n_estimators):
+            # Ottieni probabilità dell'ensemble parziale (primi i+1 alberi)
+            probas = self.model.predict_proba(X_test, iteration_range=(0, i+1))
+            # Prendi la probabilità massima come confidence
+            max_conf = np.max(probas, axis=1)
+            confidences.append(max_conf)
+        
+        return np.array(confidences)
