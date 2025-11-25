@@ -13,8 +13,22 @@ class disagreement_measure(diversity_metric):
         
         for i in range(n_classifiers):
             for j in range(i+1, n_classifiers):
-                correct_i = (predictions[i, :] == y_test)
-                correct_j = (predictions[j, :] == y_test)
+
+                # Crea la maschera per ignorare i reject
+                valid_mask = self._get_valid_mask(predictions[i, :], predictions[j, :])
+
+                 # Se non ci sono campioni validi, salta questa coppia
+                if np.sum(valid_mask) == 0:
+                    continue
+
+                # Applica la maschera per filtrare le predizioni e le label
+                pred_i_valid = predictions[i, :][valid_mask]
+                pred_j_valid = predictions[j, :][valid_mask]
+                y_test_valid = y_test[valid_mask]
+
+                # Calcola la correttezza sui campioni filtrati
+                correct_i = (pred_i_valid == y_test_valid)
+                correct_j = (pred_j_valid == y_test_valid)
                 
                 N11 = np.sum(correct_i & correct_j)
                 N00 = np.sum(~correct_i & ~correct_j)
