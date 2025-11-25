@@ -13,6 +13,12 @@ class Q_statistic(diversity_metric):
         
         for i in range(n_classifiers):
             for j in range(i+1, n_classifiers):
+
+                valid_mask = self._get_valid_mask(predictions[i, :], predictions[j, :])
+                
+                if np.sum(valid_mask) == 0:
+                    continue
+                
                 correct_i = (predictions[i, :] == y_test)
                 correct_j = (predictions[j, :] == y_test)
                 

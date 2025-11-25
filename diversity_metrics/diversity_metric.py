@@ -22,6 +22,10 @@ class diversity_metric(ABC):
         print(f"{self.name}: {value:.6f}")
         return value
     
+    def _get_valid_mask(self, pred_i: np.ndarray, pred_j: np.ndarray) -> np.ndarray:
+        """Restituisce maschera dei campioni validi per una coppia (no reject)"""
+        return (pred_i != self.rejection_label) & (pred_j != self.rejection_label)
+    
     @abstractmethod
     def _compute(self, predictions: np.ndarray, y_test: np.ndarray,
                  X_test: np.ndarray = None, model = None) -> float:
