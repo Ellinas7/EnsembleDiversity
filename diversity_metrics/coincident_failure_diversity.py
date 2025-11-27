@@ -46,4 +46,8 @@ class coincident_failure_diversity(diversity_metric):
         CFD_sum = sum(((n_classifiers - i) / (n_classifiers - 1)) * p[i] 
                       for i in range(1, n_classifiers + 1))
         
-        return CFD_sum / (1 - p[0])
+        denominator = 1 - p[0]
+        
+        if denominator == 0:
+            return 0.0
+        return CFD_sum / denominator

@@ -33,4 +33,9 @@ class kohavi_wolpert_variance(diversity_metric):
             kw_sum += l_x * (n_valid_classifiers - l_x)
         
         # Denominatore: usa N e L^2 originali come nel paper
-        return kw_sum / (n_samples * n_classifiers**2)
+        denominator = n_samples * n_classifiers**2
+
+        if denominator == 0:
+            return 0.0
+        
+        return kw_sum / denominator

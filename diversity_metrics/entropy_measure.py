@@ -35,4 +35,6 @@ class entropy_measure(diversity_metric):
         # Il denominatore usa N (numero totale di campioni) come nel paper
         denominator = n_samples * (n_classifiers - np.ceil(n_classifiers / 2))
         
+        if denominator == 0:
+            return 0.0
         return entropy_sum / denominator
