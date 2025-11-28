@@ -19,7 +19,7 @@ class adaboost(ML_algorithm):
             n_estimators=self.n_estimators,
             random_state=self.random_state
         )
-    
+    """
     def _extract_predictions(self, X_test: np.ndarray) -> np.ndarray:
         predictions = np.array([
             estimator.predict(X_test) 
@@ -39,7 +39,19 @@ class adaboost(ML_algorithm):
             # Converti ogni riga di predizioni
             predictions_numeric = np.array([le.transform(pred) for pred in predictions])
         
-        return predictions_numeric
+        return predictions_numeric"""
+
+    def _extract_predictions(self, X_test: np.ndarray) -> np.ndarray:
+        predictions = np.array([
+            estimator.predict(X_test) 
+            for estimator in self.model.estimators_
+        ])
+    
+        # Mappa indici alle classi originali
+        classes = self.model.classes_
+        predictions = np.array([[classes[int(p)] for p in row] for row in predictions])
+    
+        return predictions
     
     def _get_estimator_confidences(self, X_test: np.ndarray) -> np.ndarray:
         """Estrae confidence di ogni weak learner di AdaBoost"""

@@ -76,7 +76,7 @@ class catboost(ML_algorithm):
             y_array = y.values if hasattr(y, 'values') else y
             return self.label_encoder.transform(y_array)
     
-    def _extract_predictions(self, X_test: np.ndarray) -> np.ndarray:
+    """def _extract_predictions(self, X_test: np.ndarray) -> np.ndarray:
         if self.model is None:
             raise ValueError("Modello non ancora addestrato.")
         
@@ -88,7 +88,29 @@ class catboost(ML_algorithm):
             pred = self.model.predict(X_test, ntree_end=i)
             predictions.append(pred)
         
-        return np.array(predictions).astype(int)
+        return np.array(predictions).astype(int)"""
+   
+    def _extract_predictions(self, X_test: np.ndarray) -> np.ndarray:
+        if self.model is None:
+            raise ValueError("Modello non ancora addestrato.")
+        
+        if hasattr(X_test, 'values'):
+            X_test = X_test.values
+        
+        predictions = []
+        for i in range(1, self.n_estimators + 1):
+            pred = self.model.predict(X_test, ntree_end=i).flatten()
+            predictions.append(pred)
+        
+        predictions = np.array(predictions)
+        
+        # Mappa alle label originali se necessario
+        if self.label_encoder is not None:
+            predictions = np.array([[self.label_encoder.inverse_transform([int(p)])[0] 
+                                    for p in row] for row in predictions])
+        
+        return predictions    
+        
     
     def _get_estimator_confidences(self, X_test: np.ndarray) -> np.ndarray:
         if self.model is None:

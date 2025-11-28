@@ -58,8 +58,8 @@ class gradient_boosting_decision_trees(ML_algorithm):
         
         return self.model.predict_proba(X_test)
     
-    def _extract_predictions(self, X_test: np.ndarray) -> np.ndarray:
-        """
+    """def _extract_predictions(self, X_test: np.ndarray) -> np.ndarray:
+       
         Estrae predizioni degli ensemble parziali di Gradient Boosting.
         
         Per GBDT, seguiamo il pattern di staged_predict che restituisce
@@ -67,7 +67,7 @@ class gradient_boosting_decision_trees(ML_algorithm):
         
         Returns:
             Array shape (n_estimators, n_samples) con predizioni NUMERICHE
-        """
+        
         if self.model is None:
             raise ValueError("Modello non ancora addestrato.")
         
@@ -96,7 +96,30 @@ class gradient_boosting_decision_trees(ML_algorithm):
             # Converti ogni riga di predizioni
             predictions_numeric = np.array([le.transform(pred) for pred in predictions])
         
-        return predictions_numeric
+        return predictions_numeric"""
+    
+    def _extract_predictions(self, X_test: np.ndarray) -> np.ndarray:
+        if self.model is None:
+            raise ValueError("Modello non ancora addestrato.")
+        
+        if hasattr(X_test, 'values'):
+            X_test = X_test.values
+        
+        predictions = []
+        for stage_pred in self.model.staged_predict(X_test):
+            predictions.append(stage_pred)
+        
+        predictions = np.array(predictions)
+        
+        # staged_predict già restituisce le label originali, ma verifichiamo
+        # Se sono numeriche e ci sono classi, mappiamo
+        if np.issubdtype(predictions.dtype, np.number) and hasattr(self.model, 'classes_'):
+            classes = self.model.classes_
+            if not np.issubdtype(classes.dtype, np.number):
+                predictions = np.array([[classes[int(p)] for p in row] for row in predictions])
+        
+        return predictions
+    
     
     def _get_estimator_confidences(self, X_test: np.ndarray) -> np.ndarray:
         """

@@ -22,6 +22,11 @@ class random_forest(ML_algorithm):
             estimator.predict(X_test) 
             for estimator in self.model.estimators_
         ])
+    
+        # Mappa indici alle classi originali
+        classes = self.model.classes_
+        predictions = np.array([[classes[int(p)] for p in row] for row in predictions])
+        
         return predictions
     
     def _get_estimator_confidences(self, X_test: np.ndarray) -> np.ndarray:

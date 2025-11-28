@@ -62,8 +62,8 @@ class rotation_forest(ML_algorithm):
         
         return self.model.predict_proba(X_test)
     
-    def _extract_predictions(self, X_test: np.ndarray) -> np.ndarray:
-        """
+    """def _extract_predictions(self, X_test: np.ndarray) -> np.ndarray:
+        
         Estrae le predizioni dei singoli alberi del Rotation Forest.
         
         Rotation Forest, come Random Forest, ha un attributo estimators_
@@ -74,7 +74,7 @@ class rotation_forest(ML_algorithm):
             
         Returns:
             Array shape (n_estimators, n_samples) con predizioni NUMERICHE
-        """
+        
         if self.model is None:
             raise ValueError("Modello non ancora addestrato.")
         
@@ -101,8 +101,26 @@ class rotation_forest(ML_algorithm):
             # Converti ogni riga di predizioni
             predictions_numeric = np.array([le.transform(pred) for pred in predictions])
         
-        return predictions_numeric
+        return predictions_numeric"""
     
+    def _extract_predictions(self, X_test: np.ndarray) -> np.ndarray:
+        if self.model is None:
+            raise ValueError("Modello non ancora addestrato.")
+        
+        if hasattr(X_test, 'values'):
+            X_test = X_test.values
+        
+        predictions = np.array([
+            estimator.predict(X_test) 
+            for estimator in self.model.estimators_
+        ])
+        
+        # Mappa indici alle classi originali
+        classes = self.model.classes_
+        predictions = np.array([[classes[int(p)] for p in row] for row in predictions])
+        
+        return predictions
+   
     def _get_estimator_confidences(self, X_test: np.ndarray) -> np.ndarray:
         """
         Estrae le confidence dei singoli alberi del Rotation Forest.

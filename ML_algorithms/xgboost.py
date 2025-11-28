@@ -100,8 +100,9 @@ class xgboost(ML_algorithm):
             y_array = y.values if hasattr(y, 'values') else y
             return self.label_encoder.transform(y_array)
         
-    def _extract_predictions(self, X_test: np.ndarray) -> np.ndarray:
         """
+    def _extract_predictions(self, X_test: np.ndarray) -> np.ndarray:
+        
         Estrae predizioni degli ensemble parziali di XGBoost.
         
         IMPORTANTE: Seguendo il pattern dei notebook, questo metodo restituisce
@@ -116,7 +117,7 @@ class xgboost(ML_algorithm):
         
         Returns:
             Array shape (n_estimators, n_samples) con predizioni NUMERICHE
-        """
+        
         if self.model is None:
             raise ValueError("Modello non ancora addestrato.")
         
@@ -135,7 +136,29 @@ class xgboost(ML_algorithm):
         predictions_numeric = np.array(predictions).astype(int)
         
         return predictions_numeric
+        """
+
+    def _extract_predictions(self, X_test: np.ndarray) -> np.ndarray:
+        if self.model is None:
+            raise ValueError("Modello non ancora addestrato.")
     
+        if hasattr(X_test, 'values'):
+            X_test = X_test.values
+    
+        predictions = []
+        for i in range(self.model.n_estimators):
+            pred = self.model.predict(X_test, iteration_range=(0, i+1))
+            predictions.append(pred)
+    
+        predictions = np.array(predictions)
+    
+        # Mappa alle label originali se necessario
+        if self.label_encoder is not None:
+            predictions = np.array([[self.label_encoder.inverse_transform([int(p)])[0] 
+                                    for p in row] for row in predictions])
+    
+        return predictions
+
     def _get_estimator_confidences(self, X_test: np.ndarray) -> np.ndarray:
         """
         Estrae le confidence degli ensemble PARZIALI di XGBoost.
