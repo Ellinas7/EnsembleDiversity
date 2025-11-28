@@ -18,7 +18,7 @@ class static_threshold_rejection_decorator(abstract_rejection_decorator):
         """
         super().__init__(base_algorithm)
         self.confidence_threshold = confidence_threshold
-        self.name = f"{base_algorithm.name}_static_threshold_{int(confidence_threshold*100)}"
+        self.name = f"{base_algorithm.name}_static_threshold_{float(confidence_threshold)}"
     
     def _calculate_threshold(self, confidences: np.ndarray) -> float:
         """Restituisce la soglia fissa configurata"""
