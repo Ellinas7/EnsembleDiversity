@@ -6,7 +6,7 @@ class diversity_metric(ABC):
     
     def __init__(self, name: str):
         self.name = name
-        self.rejection_label = -1
+        self.rejection_label = "reject"
     
     def calculate(self, predictions: np.ndarray, y_test: np.ndarray,
                   X_test: np.ndarray = None, model = None) -> float:

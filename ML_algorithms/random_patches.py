@@ -1,4 +1,4 @@
-from ML_algorithm import ML_algorithm
+from ML_algorithms.ML_algorithm import ML_algorithm
 from sklearn.ensemble import BaggingClassifier
 from sklearn.tree import DecisionTreeClassifier
 import numpy as np
