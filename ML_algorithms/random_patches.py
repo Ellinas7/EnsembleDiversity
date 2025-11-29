@@ -51,34 +51,26 @@ class random_patches(ML_algorithm):
         )
     
     def _extract_predictions(self, X_test: np.ndarray) -> np.ndarray:
-        """
-        Estrae le predizioni di tutti i base learners.
-        
-        Returns:
-            Array shape (n_estimators, n_samples) con le predizioni
-        """
         if self.model is None:
             raise ValueError("Modello non ancora addestrato.")
         
         if hasattr(X_test, 'values'):
             X_test = X_test.values
         
-        predictions = np.array([
-            estimator.predict(X_test) 
-            for estimator in self.model.estimators_
-        ])
+        predictions = []
+        for estimator, features in zip(self.model.estimators_, self.model.estimators_features_):
+            X_subset = X_test[:, features]
+            predictions.append(estimator.predict(X_subset))
         
-        predictions_numeric = self._convert_predictions_to_numeric(predictions)
+        predictions = np.array(predictions)
         
-        return predictions_numeric
+        # Mappa alle classi originali
+        classes = self.model.classes_
+        predictions = np.array([[classes[int(p)] for p in row] for row in predictions])
+        
+        return predictions
     
     def _get_estimator_confidences(self, X_test: np.ndarray) -> np.ndarray:
-        """
-        Estrae le confidence scores di tutti i base learners.
-        
-        Returns:
-            Array shape (n_estimators, n_samples) con le confidence
-        """
         if self.model is None:
             raise ValueError("Modello non ancora addestrato.")
         
@@ -86,8 +78,9 @@ class random_patches(ML_algorithm):
             X_test = X_test.values
         
         confidences = []
-        for estimator in self.model.estimators_:
-            probas = estimator.predict_proba(X_test)
+        for estimator, features in zip(self.model.estimators_, self.model.estimators_features_):
+            X_subset = X_test[:, features]
+            probas = estimator.predict_proba(X_subset)
             max_conf = np.max(probas, axis=1)
             confidences.append(max_conf)
         

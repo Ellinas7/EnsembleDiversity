@@ -337,12 +337,11 @@ class ExperimentLogger:
 
 if __name__ == "__main__":
     
-    
-    algo = random_forest(n_estimators=2)
+    algo = rotation_forest(n_estimators=2)
     algo_with_rej = static_threshold_rejection_decorator(algo, confidence_threshold=0.9)
         
     logger = ExperimentLogger()
-    results = logger.run_and_save('arancino_all_scikit', algo_with_rej, ['classiche'])
+    results = logger.run_and_save('arancino_all_scikit', algo_with_rej, ['classiche', 'doppio'])
         
     print("\nRisultati:")
     for k, v in results.items():

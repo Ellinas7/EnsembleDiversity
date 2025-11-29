@@ -47,10 +47,7 @@ class adaboost(ML_algorithm):
             for estimator in self.model.estimators_
         ])
     
-        # Mappa indici alle classi originali
-        classes = self.model.classes_
-        predictions = np.array([[classes[int(p)] for p in row] for row in predictions])
-    
+        # Le predizioni dei singoli estimatori sono già nelle label originali
         return predictions
     
     def _get_estimator_confidences(self, X_test: np.ndarray) -> np.ndarray:
