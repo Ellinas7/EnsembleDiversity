@@ -334,9 +334,111 @@ class ExperimentLogger:
         self.df.to_csv(self.megafile_path, index=False)
         print(f"✓ Esperimento #{experiment_number} cancellato e numerazione aggiornata")
 
+    def run_dual_rejection(self, ds, algorithm: ML_algorithm, 
+                       metric_groups: list,
+                       static_threshold: float = 0.9,
+                       rejection_percentile: float = 10.0,
+                       stratify: bool = True) -> tuple:
+        """
+        Esegue due esperimenti con stesso algoritmo ma due tecniche di rejection diverse.
+        Training eseguito UNA sola volta.
+        
+        Args:
+            ds: Nome dataset (stringa) o oggetto dataset già preparato
+            algorithm: Algoritmo ML base (senza rejection)
+            metric_groups: Lista gruppi metriche (es. ['classiche', 'doppio'])
+            static_threshold: Soglia per static rejection (default 0.9)
+            rejection_percentile: Percentile per percentile rejection (default 10.0)
+            stratify: Se True, usa stratify nello split
+        
+        Returns:
+            Tuple con i due dizionari di risultati (static, percentile)
+        """
+        # Carica dataset se stringa
+        if isinstance(ds, str):
+            if ds not in self.DATASETS:
+                raise ValueError(f"Dataset '{ds}' non trovato. Disponibili: {list(self.DATASETS.keys())}")
+            ds = dataset(self.DATASETS[ds], dataset_name=ds, stratify=stratify)
+            ds.preprocess()
+        
+        X_train, X_test, y_train, y_test = ds.data
+        
+        # Training UNA sola volta
+        print(f"\n{'='*60}")
+        print(f"Training {algorithm.name} (una sola volta)")
+        print(f"{'='*60}")
+        algorithm.train(X_train, y_train)
+        
+        # Crea i due decorator sullo stesso modello addestrato
+        algo_static = static_threshold_rejection_decorator(algorithm, confidence_threshold=static_threshold)
+        algo_percentile = percentile_threshold_rejection_decorator(algorithm, rejection_percentile=rejection_percentile)
+        
+        results_list = []
+        
+        for algo_with_rej, rej_name, rej_value in [
+            (algo_static, "static", static_threshold),
+            (algo_percentile, "percentile", rejection_percentile)
+        ]:
+            print(f"\n--- Calcolo metriche per {rej_name} rejection ---")
+            
+            # Estrai predizioni con rejection
+            predictions = algo_with_rej.get_estimator_predictions(X_test)
+            y_test_array = y_test.values if hasattr(y_test, 'values') else y_test
+            predictions = predictions.astype(str)
+            y_test_array = y_test_array.astype(str)
+            
+            # Genera nome esperimento
+            experiment_name = f"{ds.dataset_name}_{algorithm.name}_{algorithm.n_estimators}_{rej_name}_{rej_value}"
+            
+            # Inizializza risultati
+            results = {
+                "experiment_number": self._get_next_experiment_number(),
+                "experiment_name": experiment_name,
+                "dataset_name": ds.dataset_name,
+                "classification_strategy": algo_with_rej.name
+            }
+            
+            # Inizializza tutte le metriche a "non calcolata"
+            for col in self.COLUMNS[4:]:
+                results[col] = "non calcolata"
+            
+            # Raccogli metriche da calcolare
+            metrics_to_compute = []
+            for group in metric_groups:
+                if group not in self.METRIC_GROUPS:
+                    raise ValueError(f"Gruppo '{group}' non trovato. Disponibili: {list(self.METRIC_GROUPS.keys())}")
+                metrics_to_compute.extend(self.METRIC_GROUPS[group])
+            
+            # Calcola le metriche
+            for metric_name in metrics_to_compute:
+                metric_class = self.METRIC_CLASSES[metric_name]
+                
+                if metric_name in self.METRICHE_CLASSICHE:
+                    results[metric_name] = self._safe_compute(metric_class(), predictions, y_test_array)
+                
+                elif metric_name in self.METRICHE_DOPPIO:
+                    pred_pair = predictions[:2, :]
+                    if metric_name in ['recovery_correct_prediction_rate', 'recovery_wrong_prediction_rate', 
+                                    'recovery_rejection_prediction_rate']:
+                        models_pair = [self._get_single_model(algo_with_rej, i) for i in range(2)]
+                        results[metric_name] = self._safe_compute(metric_class(), pred_pair, y_test_array, X_test, models_pair)
+                    else:
+                        results[metric_name] = self._safe_compute(metric_class(), pred_pair, y_test_array)
+                
+                elif metric_name in self.METRICHE_TERNA:
+                    pred_triple = predictions[:3, :]
+                    results[metric_name] = self._safe_compute(metric_class(), pred_triple, y_test_array)
+            
+            # Salva esperimento
+            self.save_experiment(results)
+            results_list.append(results)
+        
+        return tuple(results_list)
+
 
 if __name__ == "__main__":
     
+    """
     algo = rotation_forest(n_estimators=2)
     algo_with_rej = static_threshold_rejection_decorator(algo, confidence_threshold=0.9)
         
@@ -346,9 +448,22 @@ if __name__ == "__main__":
     print("\nRisultati:")
     for k, v in results.items():
         print(f"  {k}: {v}")
-    
+    """
 
-"""
-logger = ExperimentLogger()
-logger.delete_experiment(1)
-"""
+    """
+    logger = ExperimentLogger()
+    logger.delete_experiment(1)
+    """
+
+    logger = ExperimentLogger()
+
+    algo = adaboost(n_estimators=3)
+
+    results_static, results_percentile = logger.run_dual_rejection(
+        'arancino_all_scikit', 
+        algo, 
+        ['classiche', 'terna'],
+        static_threshold=0.9,
+        rejection_percentile=10.0
+    )
+    
