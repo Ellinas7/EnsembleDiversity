@@ -7,7 +7,7 @@ from sklearn.preprocessing import LabelEncoder
 class catboost(ML_algorithm):
     """CatBoost Classifier con label encoding automatico"""
     
-    def __init__(self, n_estimators: int = 2, random_state: int = 42, 
+    def __init__(self, n_estimators: int = 100, random_state: int = 42, 
                  max_depth: int = 6, learning_rate: float = 0.1):
         super().__init__(n_estimators, random_state)
         self.max_depth = max_depth
@@ -68,61 +68,3 @@ class catboost(ML_algorithm):
             X_test = X_test.values
         
         return self.model.predict_proba(X_test)
-    
-    def encode_labels(self, y: np.ndarray) -> np.ndarray:
-        if self.label_encoder is None:
-            return y.values if hasattr(y, 'values') else y
-        else:
-            y_array = y.values if hasattr(y, 'values') else y
-            return self.label_encoder.transform(y_array)
-    
-    """def _extract_predictions(self, X_test: np.ndarray) -> np.ndarray:
-        if self.model is None:
-            raise ValueError("Modello non ancora addestrato.")
-        
-        if hasattr(X_test, 'values'):
-            X_test = X_test.values
-        
-        predictions = []
-        for i in range(1, self.n_estimators + 1):
-            pred = self.model.predict(X_test, ntree_end=i)
-            predictions.append(pred)
-        
-        return np.array(predictions).astype(int)"""
-   
-    def _extract_predictions(self, X_test: np.ndarray) -> np.ndarray:
-        if self.model is None:
-            raise ValueError("Modello non ancora addestrato.")
-        
-        if hasattr(X_test, 'values'):
-            X_test = X_test.values
-        
-        predictions = []
-        for i in range(1, self.n_estimators + 1):
-            pred = self.model.predict(X_test, ntree_end=i).flatten()
-            predictions.append(pred)
-        
-        predictions = np.array(predictions)
-        
-        # Mappa alle label originali se necessario
-        if self.label_encoder is not None:
-            predictions = np.array([[self.label_encoder.inverse_transform([int(p)])[0] 
-                                    for p in row] for row in predictions])
-        
-        return predictions    
-        
-    
-    def _get_estimator_confidences(self, X_test: np.ndarray) -> np.ndarray:
-        if self.model is None:
-            raise ValueError("Modello non ancora addestrato.")
-        
-        if hasattr(X_test, 'values'):
-            X_test = X_test.values
-        
-        confidences = []
-        for i in range(1, self.n_estimators + 1):
-            proba = self.model.predict_proba(X_test, ntree_end=i)
-            max_conf = np.max(proba, axis=1)
-            confidences.append(max_conf)
-        
-        return np.array(confidences)

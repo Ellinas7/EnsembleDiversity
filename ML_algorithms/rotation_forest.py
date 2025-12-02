@@ -11,7 +11,7 @@ from ML_algorithms.ML_algorithm import ML_algorithm
 class rotation_forest(ML_algorithm):
     """Rotation Forest Classifier (implementazione manuale)"""
     
-    def __init__(self, n_estimators: int = 10, random_state: int = 42, 
+    def __init__(self, n_estimators: int = 100, random_state: int = 42, 
                  n_jobs: int = -1, max_depth=None, min_samples_split=2,
                  min_samples_leaf=1, n_features_per_subset=3):
         super().__init__(n_estimators, random_state)
@@ -46,16 +46,13 @@ class rotation_forest(ML_algorithm):
             subset_indices = feature_indices[start:end]
             X_subset = X[:, subset_indices]
             
-            # Bootstrap per questo subset
             bootstrap_indices = rng.choice(X.shape[0], size=int(0.75 * X.shape[0]), replace=True)
             X_bootstrap = X_subset[bootstrap_indices]
             
-            # PCA
             n_components = min(X_bootstrap.shape[0], X_bootstrap.shape[1], end - start)
             pca = PCA(n_components=n_components)
             pca.fit(X_bootstrap)
             
-            # Inserisci i componenti nella matrice di rotazione
             for j, idx in enumerate(subset_indices):
                 for k, comp_idx in enumerate(subset_indices):
                     if j < pca.components_.shape[0] and k < pca.components_.shape[1]:
@@ -82,11 +79,9 @@ class rotation_forest(ML_algorithm):
         for i in range(self.n_estimators):
             tree_seed = None if self.random_state is None else self.random_state + i
             
-            # Costruisci matrice di rotazione con PCA
             rotation_matrix = self._build_rotation_matrix(X_train, tree_seed)
             self.rotation_matrices_.append(rotation_matrix)
             
-            # Ruota features
             X_rotated = np.dot(X_train, rotation_matrix)
             
             tree = DecisionTreeClassifier(
@@ -135,37 +130,3 @@ class rotation_forest(ML_algorithm):
             all_proba.append(tree.predict_proba(X_rotated))
         
         return np.mean(all_proba, axis=0)
-    
-    def _extract_predictions(self, X_test: np.ndarray) -> np.ndarray:
-        if not self.estimators_:
-            raise ValueError("Modello non ancora addestrato.")
-        
-        if hasattr(X_test, 'values'):
-            X_test = X_test.values
-        
-        X_test = check_array(X_test)
-        predictions = np.empty((self.n_estimators, X_test.shape[0]), dtype=object)
-        
-        for i, (tree, rot_matrix) in enumerate(zip(self.estimators_, self.rotation_matrices_)):
-            X_rotated = np.dot(X_test, rot_matrix)
-            pred_encoded = tree.predict(X_rotated)
-            predictions[i] = self.label_encoder_.inverse_transform(pred_encoded)
-        
-        return predictions
-    
-    def _get_estimator_confidences(self, X_test: np.ndarray) -> np.ndarray:
-        if not self.estimators_:
-            raise ValueError("Modello non ancora addestrato.")
-        
-        if hasattr(X_test, 'values'):
-            X_test = X_test.values
-        
-        X_test = check_array(X_test)
-        confidences = np.empty((self.n_estimators, X_test.shape[0]))
-        
-        for i, (tree, rot_matrix) in enumerate(zip(self.estimators_, self.rotation_matrices_)):
-            X_rotated = np.dot(X_test, rot_matrix)
-            proba = tree.predict_proba(X_rotated)
-            confidences[i] = np.max(proba, axis=1)
-        
-        return confidences

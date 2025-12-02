@@ -6,8 +6,7 @@ class static_threshold_rejection_decorator(abstract_rejection_decorator):
     """
     Decorator che implementa rejection con soglia statica/fissa.
     
-    Rifiuta tutte le predizioni con confidenza < threshold (es. 0.9).
-    Il tasso di rejection varia in base al dataset e al modello.
+    Rifiuta tutte le predizioni con confidenza < threshold.
     """
     
     def __init__(self, base_algorithm, confidence_threshold: float = 0.9):

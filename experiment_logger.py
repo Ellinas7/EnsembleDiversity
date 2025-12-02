@@ -184,11 +184,13 @@ class ExperimentLogger:
         'ideal_single_vote_rate': ideal_single_vote_rate
     }
     
+
     def __init__(self, megafile_path: str = "/Users/matteopascuzzo/Desktop/Megafile.csv"):
         self.megafile_path = Path(megafile_path)
         self.calc = metric_calculator()
         self._load_or_create_megafile()
     
+
     def _load_or_create_megafile(self):
         """Carica il Megafile esistente o ne crea uno nuovo"""
         if self.megafile_path.exists():
@@ -197,12 +199,14 @@ class ExperimentLogger:
             self.df = pd.DataFrame(columns=self.COLUMNS)
             self.df.to_csv(self.megafile_path, index=False)
     
+
     def _get_next_experiment_number(self) -> int:
         """Restituisce il prossimo numero di esperimento"""
         if len(self.df) == 0:
             return 1
         return int(self.df["experiment_number"].max()) + 1
     
+
     def run_experiment(self, ds: dataset, algorithm: ML_algorithm, 
                    metric_groups: list) -> dict:
         """
@@ -263,8 +267,9 @@ class ExperimentLogger:
         
         return results
     
+    """
     def _get_single_model(self, algorithm, index: int):
-        """Estrae un singolo modello dall'ensemble per le metriche che richiedono predict_proba"""
+            Estrae un singolo modello dall'ensemble per le metriche che richiedono predict_proba
         base_algo = algorithm.base_algorithm if hasattr(algorithm, 'base_algorithm') else algorithm
         
         if hasattr(base_algo.model, 'estimators_'):
@@ -272,7 +277,29 @@ class ExperimentLogger:
         else:
             # Per modelli boosting, restituiamo il modello completo
             return base_algo.model
-    
+    """
+
+    def _get_single_model(self, algorithm, index: int):
+        """Estrae un singolo modello dall'ensemble per le metriche che richiedono predict_proba"""
+        base_algo = algorithm.base_algorithm if hasattr(algorithm, 'base_algorithm') else algorithm
+
+        # Random Patches usa sottoinsiemi di features - restituiamo il modello completo
+        if hasattr(base_algo.model,'estimators_features_'):
+            return base_algo.model
+        
+        if hasattr(base_algo.model, 'estimators_'):
+            estimator = base_algo.model.estimators_[index]
+            # GradientBoosting ha estimators_ come array 2D di regressori, non classificatori
+            if isinstance(estimator, np.ndarray):
+                return base_algo.model
+            elif hasattr(estimator, 'predict_proba'):
+                return estimator
+            else:
+                return base_algo.model
+        else:
+            return base_algo.model
+
+
     def _safe_compute(self, metric, predictions, y_test, X_test=None, model=None):
         """Esegue il calcolo in modo sicuro, restituendo None in caso di errore"""
         try:
@@ -284,6 +311,7 @@ class ExperimentLogger:
             print(f"Errore calcolo {metric.name}: {e}")
             return None
     
+
     def save_experiment(self, results: dict):
         """Salva i risultati di un esperimento nel Megafile"""
         new_row = pd.DataFrame([results])
@@ -291,6 +319,7 @@ class ExperimentLogger:
         self.df.to_csv(self.megafile_path, index=False)
         print(f"✓ Esperimento #{results['experiment_number']} salvato in {self.megafile_path}")
     
+
     def run_and_save(self, ds, algorithm: ML_algorithm, 
                  metric_groups: list, stratify: bool = True) -> dict:
         """
@@ -313,6 +342,7 @@ class ExperimentLogger:
         self.save_experiment(results)
         return results
     
+
     def delete_experiment(self, experiment_number: int):
         """
         Cancella un esperimento e rinumera i successivi.
@@ -333,6 +363,7 @@ class ExperimentLogger:
         # Salva
         self.df.to_csv(self.megafile_path, index=False)
         print(f"✓ Esperimento #{experiment_number} cancellato e numerazione aggiornata")
+
 
     def run_dual_rejection(self, ds, algorithm: ML_algorithm, 
                        metric_groups: list,
@@ -456,14 +487,11 @@ if __name__ == "__main__":
     """
 
     logger = ExperimentLogger()
+    algo = random_patches(n_estimators=2)
 
-    algo = adaboost(n_estimators=3)
-
-    results_static, results_percentile = logger.run_dual_rejection(
-        'arancino_all_scikit', 
-        algo, 
-        ['classiche', 'terna'],
-        static_threshold=0.9,
-        rejection_percentile=10.0
-    )
+    results = logger.run_dual_rejection(
+    'arancino_all_scikit',
+    algo,
+    ['classiche', 'doppio']
+)
     

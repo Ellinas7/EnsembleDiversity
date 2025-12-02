@@ -11,7 +11,7 @@ from ML_algorithms.ML_algorithm import ML_algorithm
 class random_rotation_forest(ML_algorithm):
     """Random Rotation Forest Classifier"""
     
-    def __init__(self, n_estimators: int = 10, random_state: int = 42, 
+    def __init__(self, n_estimators: int = 100, random_state: int = 42, 
                  n_jobs: int = -1, max_features=None, bootstrap=True, 
                  max_depth=None, min_samples_split=2, min_samples_leaf=1,
                  criterion="gini"):
@@ -37,11 +37,9 @@ class random_rotation_forest(ML_algorithm):
         return M.astype(np.float32)
     
     def _create_model(self):
-        """Restituisce self"""
         return self
     
     def train(self, X_train: np.ndarray, y_train: np.ndarray) -> None:
-        """Addestra l'ensemble di alberi ruotati"""
         X_train, y_train = check_X_y(X_train, y_train)
         
         self.classes_ = unique_labels(y_train)
@@ -59,11 +57,9 @@ class random_rotation_forest(ML_algorithm):
         for i in range(self.n_estimators):
             tree_seed = None if self.random_state is None else self.random_state + i
             
-            # Genera matrice di rotazione
             rotation_matrix = self._random_rotation_matrix(X_train.shape[1])
             self.rotation_matrices_.append(rotation_matrix)
             
-            # Bootstrap sampling
             if self.bootstrap:
                 n_samples = X_train.shape[0]
                 indices = np.random.choice(n_samples, size=n_samples, replace=True)
@@ -73,7 +69,6 @@ class random_rotation_forest(ML_algorithm):
                 X_sample = X_train
                 y_sample = y_encoded
             
-            # Ruota features e addestra albero
             X_rotated = np.dot(X_sample, rotation_matrix)
             
             tree = DecisionTreeClassifier(
@@ -91,7 +86,6 @@ class random_rotation_forest(ML_algorithm):
         print(f"✓ {self.name} addestrato")
     
     def predict(self, X_test: np.ndarray) -> np.ndarray:
-        """Predice tramite majority voting"""
         if not self.estimators_:
             raise ValueError("Modello non ancora addestrato.")
         
@@ -111,7 +105,6 @@ class random_rotation_forest(ML_algorithm):
         return self.label_encoder_.inverse_transform(voted_predictions)
     
     def predict_proba(self, X_test: np.ndarray) -> np.ndarray:
-        """Restituisce la media delle probabilità"""
         if not self.estimators_:
             raise ValueError("Modello non ancora addestrato.")
         
@@ -126,39 +119,3 @@ class random_rotation_forest(ML_algorithm):
             all_proba.append(tree.predict_proba(X_rotated))
         
         return np.mean(all_proba, axis=0)
-    
-    def _extract_predictions(self, X_test: np.ndarray) -> np.ndarray:
-        """Estrae le predizioni dei singoli alberi"""
-        if not self.estimators_:
-            raise ValueError("Modello non ancora addestrato.")
-        
-        if hasattr(X_test, 'values'):
-            X_test = X_test.values
-        
-        X_test = check_array(X_test)
-        predictions = np.empty((self.n_estimators, X_test.shape[0]), dtype=object)
-        
-        for i, (tree, rot_matrix) in enumerate(zip(self.estimators_, self.rotation_matrices_)):
-            X_rotated = np.dot(X_test, rot_matrix)
-            pred_encoded = tree.predict(X_rotated)
-            predictions[i] = self.label_encoder_.inverse_transform(pred_encoded)
-        
-        return predictions
-    
-    def _get_estimator_confidences(self, X_test: np.ndarray) -> np.ndarray:
-        """Estrae le confidence dei singoli alberi"""
-        if not self.estimators_:
-            raise ValueError("Modello non ancora addestrato.")
-        
-        if hasattr(X_test, 'values'):
-            X_test = X_test.values
-        
-        X_test = check_array(X_test)
-        confidences = np.empty((self.n_estimators, X_test.shape[0]))
-        
-        for i, (tree, rot_matrix) in enumerate(zip(self.estimators_, self.rotation_matrices_)):
-            X_rotated = np.dot(X_test, rot_matrix)
-            proba = tree.predict_proba(X_rotated)
-            confidences[i] = np.max(proba, axis=1)
-        
-        return confidences

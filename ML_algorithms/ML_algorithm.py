@@ -6,7 +6,7 @@ from typing import Tuple, Optional
 class ML_algorithm(ABC):
     """Classe base astratta per algoritmi di ensemble learning"""
     
-    def __init__(self, n_estimators: int = 2, random_state: int = 42):
+    def __init__(self, n_estimators: int = 100, random_state: int = 42):
         """
         Args:
             n_estimators: Numero di weak learners nell'ensemble
@@ -52,33 +52,20 @@ class ML_algorithm(ABC):
         
         return self.model.predict(X_test)
     
-    @abstractmethod
-    def _extract_predictions(self, X_test: np.ndarray) -> np.ndarray:
+    def predict_proba(self, X_test: np.ndarray) -> np.ndarray:
         """
-        Estrae le predizioni dei singoli estimatori.
+        Restituisce le probabilità predette per ogni classe.
         
         Args:
             X_test: Dati di test
             
         Returns:
-            Array (n_estimators, n_samples) con le predizioni
-        """
-        pass
-    
-    def get_estimator_predictions(self, X_test: np.ndarray) -> np.ndarray:
-        """
-        Ottiene le predizioni dei singoli estimatori.
-        
-        Args:
-            X_test: Dati di test
-            
-        Returns:
-            Array (n_estimators, n_samples) con predizioni
+            Array shape (n_samples, n_classes) con probabilità per ogni classe
         """
         if self.model is None:
             raise ValueError("Modello non ancora addestrato. Chiamare il metodo train() prima.")
         
-        return self._extract_predictions(X_test)
+        return self.model.predict_proba(X_test)
     
     def calculate_accuracy(self, X_test: np.ndarray, y_test: np.ndarray) -> float:
         """

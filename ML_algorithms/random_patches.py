@@ -32,13 +32,6 @@ class random_patches(ML_algorithm):
         self.name = "RandomPatches"
     
     def _create_model(self):
-        """
-        Crea il modello Random Patches usando BaggingClassifier.
-        
-        Random Patches = Bagging + Random Subspaces:
-        - max_samples < 1.0: campiona casualmente una frazione dei campioni (Bagging)
-        - max_features < 1.0: campiona casualmente una frazione delle features (Random Subspaces)
-        """
         return BaggingClassifier(
             estimator=DecisionTreeClassifier(),
             n_estimators=self.n_estimators,
@@ -49,39 +42,3 @@ class random_patches(ML_algorithm):
             random_state=self.random_state,
             n_jobs=self.n_jobs
         )
-    
-    def _extract_predictions(self, X_test: np.ndarray) -> np.ndarray:
-        if self.model is None:
-            raise ValueError("Modello non ancora addestrato.")
-        
-        if hasattr(X_test, 'values'):
-            X_test = X_test.values
-        
-        predictions = []
-        for estimator, features in zip(self.model.estimators_, self.model.estimators_features_):
-            X_subset = X_test[:, features]
-            predictions.append(estimator.predict(X_subset))
-        
-        predictions = np.array(predictions)
-        
-        # Mappa alle classi originali
-        classes = self.model.classes_
-        predictions = np.array([[classes[int(p)] for p in row] for row in predictions])
-        
-        return predictions
-    
-    def _get_estimator_confidences(self, X_test: np.ndarray) -> np.ndarray:
-        if self.model is None:
-            raise ValueError("Modello non ancora addestrato.")
-        
-        if hasattr(X_test, 'values'):
-            X_test = X_test.values
-        
-        confidences = []
-        for estimator, features in zip(self.model.estimators_, self.model.estimators_features_):
-            X_subset = X_test[:, features]
-            probas = estimator.predict_proba(X_subset)
-            max_conf = np.max(probas, axis=1)
-            confidences.append(max_conf)
-        
-        return np.array(confidences)
