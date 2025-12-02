@@ -1,5 +1,5 @@
 import numpy as np
-from ML_algorithms.abstract_rejection_decorator import abstract_rejection_decorator
+from abstract_rejection_decorator import abstract_rejection_decorator
 
 
 class static_threshold_rejection_decorator(abstract_rejection_decorator):
