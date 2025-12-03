@@ -8,7 +8,7 @@ class Ensemble(ABC):
     def __init__(self, classifiers: list):
         """
         Args:
-            classifiers: Lista di classificatori (possono avere rejection decorator)
+            classifiers: Lista di classificatori con rejection option
         """
         self.classifiers = classifiers
         self.n_classifiers = len(classifiers)

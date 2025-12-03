@@ -1,92 +1,49 @@
 # experiment_logger.py
+
 import pandas as pd
 import numpy as np
 from pathlib import Path
-from typing import Optional
+from typing import Union, List, Dict
+
+from datasets.dataset import dataset
 from metric_calculator import metric_calculator
 
-# Import dataset
-from datasets.dataset import dataset
+# Import Ensemble
+from ensembles.ensemble import Ensemble
+from ensembles.voting_2of2_ensemble import Voting2of2Ensemble
+from ensembles.recovery_block_ensemble import RecoveryBlockEnsemble
+from ensembles.majority_voting_ensemble import MajorityVotingEnsemble
+from ensembles.voting_1ofn_ensemble import Voting1ofNEnsemble
 
-# Import algoritmi ML
-from ML_algorithms.ML_algorithm import ML_algorithm
-from ML_algorithms.decision_tree import decision_tree
-from ML_algorithms.random_forest import random_forest
-from ML_algorithms.xgboost import xgboost
-from ML_algorithms.adaboost import adaboost
-from ML_algorithms.extra_trees import extra_trees
-from ML_algorithms.gradient_boosting_decision_trees import gradient_boosting_decision_trees
-from ML_algorithms.light_gbm import light_gbm
-from ML_algorithms.catboost import catboost
-from ML_algorithms.rotation_forest import rotation_forest
-from ML_algorithms.random_rotation_forest import random_rotation_forest
-from ML_algorithms.random_patches import random_patches
-
-# Import decoratori rejection
-from ML_algorithms.static_threshold_rejection_decorator import static_threshold_rejection_decorator
-from ML_algorithms.percentile_threshold_rejection_decorator import percentile_threshold_rejection_decorator
-
-# Import metriche classiche
-from diversity_metrics.Q_statistic import Q_statistic
-from diversity_metrics.disagreement_measure import disagreement_measure
-from diversity_metrics.double_fault_measure import double_fault_measure
-from diversity_metrics.entropy_measure import entropy_measure
-from diversity_metrics.kohavi_wolpert_variance import kohavi_wolpert_variance
-from diversity_metrics.generalized_diversity import generalized_diversity
-from diversity_metrics.coincident_failure_diversity import coincident_failure_diversity
-
-# Import metriche singolo classificatore
-from diversity_metrics.single_correct_prediction_rate import single_correct_prediction_rate
-from diversity_metrics.single_misclassification_rate import single_misclassification_rate
-from diversity_metrics.single_rejection_rate import single_rejection_rate
-from diversity_metrics.hit import hit
-from diversity_metrics.miss import miss
-from diversity_metrics.acceptance_accuracy import acceptance_accuracy
-from diversity_metrics.performance_loss import performance_loss
-
-# Import metriche voting 2/2
-from diversity_metrics.double_correct_prediction_rate import double_correct_prediction_rate
-from diversity_metrics.double_wrong_prediction_rate import double_wrong_prediction_rate
-from diversity_metrics.double_rejection_rate import double_rejection_rate
-
-# Import metriche recovery block
-from diversity_metrics.recovery_rate import recovery_rate
-from diversity_metrics.recovery_failure_rate import recovery_failure_rate
-from diversity_metrics.recovery_rejection_rate import recovery_rejection_rate
-from diversity_metrics.recovery_correct_prediction_rate import recovery_correct_prediction_rate
-from diversity_metrics.recovery_wrong_prediction_rate import recovery_wrong_prediction_rate
-from diversity_metrics.recovery_rejection_prediction_rate import recovery_rejection_prediction_rate
-
-# Import metriche majority voting
-from diversity_metrics.majority_voting_correct_prediction_rate import majority_voting_correct_prediction_rate
-from diversity_metrics.majority_voting_wrong_prediction_rate import majority_voting_wrong_prediction_rate
-from diversity_metrics.majority_voting_rejection_prediction_rate import majority_voting_rejection_prediction_rate
-
-# Import metriche single vote
-from diversity_metrics.single_vote_correct_prediction_rate import single_vote_correct_prediction_rate
-from diversity_metrics.single_vote_wrong_prediction_rate import single_vote_wrong_prediction_rate
-from diversity_metrics.single_vote_rejection_rate import single_vote_rejection_rate
-from diversity_metrics.ideal_single_vote_rate import ideal_single_vote_rate
+# Import rejection decorator
+from rejection_techniques.abstract_rejection_decorator import abstract_rejection_decorator
 
 
 class ExperimentLogger:
     """Gestisce l'esecuzione di esperimenti e il salvataggio nel Megafile.csv"""
     
     COLUMNS = [
-        "experiment_number", "experiment_name", "dataset_name", "classification_strategy",
+        "experiment_number","experiment_name", "dataset_name", "ensemble_type", "rejection_strategy",
+        # Metriche classiche
         "q_statistic", "disagreement_measure", "double_fault_measure", "entropy_measure",
         "kohavi_wolpert_variance", "generalized_diversity", "coincident_failure_diversity",
+        # Metriche singolo classificatore
         "single_correct_prediction_rate", "single_misclassification_rate", "single_rejection_rate",
         "hit", "miss", "acceptance_accuracy", "performance_loss",
+        # Metriche voting 2/2
         "double_correct_prediction_rate", "double_wrong_prediction_rate", "double_rejection_rate",
+        # Metriche recovery block
         "recovery_rate", "recovery_failure_rate", "recovery_rejection_rate",
-        "recovery_correct_prediction_rate", "recovery_wrong_prediction_rate", "recovery_rejection_prediction_rate",
-        "majority_voting_correct_prediction_rate", "majority_voting_wrong_prediction_rate", 
+        "recovery_correct_prediction_rate", "recovery_wrong_prediction_rate", 
+        "recovery_rejection_prediction_rate",
+        # Metriche majority voting
+        "majority_voting_correct_prediction_rate", "majority_voting_wrong_prediction_rate",
         "majority_voting_rejection_prediction_rate",
+        # Metriche voting 1/n
         "single_vote_correct_prediction_rate", "single_vote_wrong_prediction_rate",
         "single_vote_rejection_rate", "ideal_single_vote_rate"
     ]
-
+    
     DATASETS = {
         'arancino_all_scikit': '/Users/matteopascuzzo/Desktop/Datasets/Error Detection/arancino_all_scikit.csv',
         'mafaulda': '/Users/matteopascuzzo/Desktop/Datasets/Error Detection/MAFAULDA.csv',
@@ -99,98 +56,12 @@ class ExperimentLogger:
         'full_iot_ids_dataset_scikit': '/Users/matteopascuzzo/Desktop/Datasets/Error Detection/Full_IoT_IDS_Dataset_scikit.csv',
         'iscx_meta': '/Users/matteopascuzzo/Desktop/Datasets/Error Detection/ISCX_Meta.csv'
     }
-
-    # Gruppi di metriche
-
-    METRICHE_CLASSICHE = [
-        'q_statistic',
-        'disagreement_measure',
-        'double_fault_measure',
-        'entropy_measure',
-        'kohavi_wolpert_variance',
-        'generalized_diversity',
-        'coincident_failure_diversity'
-    ]
-
-    METRICHE_DOPPIO = [
-        'double_correct_prediction_rate',
-        'double_wrong_prediction_rate',
-        'double_rejection_rate',
-        'recovery_rate',
-        'recovery_failure_rate',
-        'recovery_rejection_rate',
-        'recovery_correct_prediction_rate',
-        'recovery_wrong_prediction_rate',
-        'recovery_rejection_prediction_rate'
-    ]
-
-    METRICHE_TERNA = [
-        'majority_voting_correct_prediction_rate',
-        'majority_voting_wrong_prediction_rate',
-        'majority_voting_rejection_prediction_rate',
-        'single_vote_correct_prediction_rate',
-        'single_vote_wrong_prediction_rate',
-        'single_vote_rejection_rate',
-        'ideal_single_vote_rate'
-    ]
-
-    # METRICHE_SINGOLO = [
-    #     'single_correct_prediction_rate',
-    #     'single_misclassification_rate',
-    #     'single_rejection_rate',
-    #     'hit',
-    #     'miss',
-    #     'acceptance_accuracy',
-    #     'performance_loss'
-    # ]
-
-    METRIC_GROUPS = {
-        'classiche': METRICHE_CLASSICHE,
-        'doppio': METRICHE_DOPPIO,
-        'terna': METRICHE_TERNA,
-        # 'singolo': METRICHE_SINGOLO
-    }
-
-    METRIC_CLASSES = {
-        'q_statistic': Q_statistic,
-        'disagreement_measure': disagreement_measure,
-        'double_fault_measure': double_fault_measure,
-        'entropy_measure': entropy_measure,
-        'kohavi_wolpert_variance': kohavi_wolpert_variance,
-        'generalized_diversity': generalized_diversity,
-        'coincident_failure_diversity': coincident_failure_diversity,
-        'single_correct_prediction_rate': single_correct_prediction_rate,
-        'single_misclassification_rate': single_misclassification_rate,
-        'single_rejection_rate': single_rejection_rate,
-        'hit': hit,
-        'miss': miss,
-        'acceptance_accuracy': acceptance_accuracy,
-        'performance_loss': performance_loss,
-        'double_correct_prediction_rate': double_correct_prediction_rate,
-        'double_wrong_prediction_rate': double_wrong_prediction_rate,
-        'double_rejection_rate': double_rejection_rate,
-        'recovery_rate': recovery_rate,
-        'recovery_failure_rate': recovery_failure_rate,
-        'recovery_rejection_rate': recovery_rejection_rate,
-        'recovery_correct_prediction_rate': recovery_correct_prediction_rate,
-        'recovery_wrong_prediction_rate': recovery_wrong_prediction_rate,
-        'recovery_rejection_prediction_rate': recovery_rejection_prediction_rate,
-        'majority_voting_correct_prediction_rate': majority_voting_correct_prediction_rate,
-        'majority_voting_wrong_prediction_rate': majority_voting_wrong_prediction_rate,
-        'majority_voting_rejection_prediction_rate': majority_voting_rejection_prediction_rate,
-        'single_vote_correct_prediction_rate': single_vote_correct_prediction_rate,
-        'single_vote_wrong_prediction_rate': single_vote_wrong_prediction_rate,
-        'single_vote_rejection_rate': single_vote_rejection_rate,
-        'ideal_single_vote_rate': ideal_single_vote_rate
-    }
     
-
     def __init__(self, megafile_path: str = "/Users/matteopascuzzo/Desktop/Megafile.csv"):
         self.megafile_path = Path(megafile_path)
         self.calc = metric_calculator()
         self._load_or_create_megafile()
     
-
     def _load_or_create_megafile(self):
         """Carica il Megafile esistente o ne crea uno nuovo"""
         if self.megafile_path.exists():
@@ -199,299 +70,172 @@ class ExperimentLogger:
             self.df = pd.DataFrame(columns=self.COLUMNS)
             self.df.to_csv(self.megafile_path, index=False)
     
-
+    def _get_ensemble_type(self, model) -> str:
+        """Determina il tipo di ensemble/classificatore"""
+        if isinstance(model, Voting2of2Ensemble):
+            return "Voting2of2"
+        elif isinstance(model, RecoveryBlockEnsemble):
+            return "RecoveryBlock"
+        elif isinstance(model, MajorityVotingEnsemble):
+            return "MajorityVoting"
+        elif isinstance(model, Voting1ofNEnsemble):
+            return "Voting1ofN"
+        elif isinstance(model, abstract_rejection_decorator):
+            return "Single"
+        else:
+            return "Unknown"
+        
     def _get_next_experiment_number(self) -> int:
         """Restituisce il prossimo numero di esperimento"""
         if len(self.df) == 0:
             return 1
         return int(self.df["experiment_number"].max()) + 1
     
-
-    def run_experiment(self, ds: dataset, algorithm: ML_algorithm, 
-                   metric_groups: list) -> dict:
+    def _get_experiment_name(self, model) -> str:
+        """Genera nome esperimento dai nomi dei classificatori"""
+        if isinstance(model, Ensemble):
+            base_names = []
+            for clf in model.classifiers:
+                if isinstance(clf, abstract_rejection_decorator):
+                    base_names.append(clf.base_algorithm.name)
+                else:
+                    base_names.append(clf.name)
+            return "+".join(base_names)
+        elif isinstance(model, abstract_rejection_decorator):
+            return model.base_algorithm.name
+        else:
+            return model.name
+    
+    def _get_rejection_strategy(self, model) -> str:
+        """Estrae la strategia di rejection dal modello"""
+        if isinstance(model, Ensemble):
+            # Prendi dal primo classificatore (assumendo stessa strategia)
+            clf = model.classifiers[0]
+            if isinstance(clf, abstract_rejection_decorator):
+                # Estrai tipo e parametro dal nome
+                name = clf.name
+                base_name = clf.base_algorithm.name
+                # Rimuovi il nome base per ottenere la strategia
+                strategy = name.replace(base_name + "_", "")
+                return strategy
+            return "none"
+        elif isinstance(model, abstract_rejection_decorator):
+            name = model.name
+            base_name = model.base_algorithm.name
+            strategy = name.replace(base_name + "_", "")
+            return strategy
+        return "none"
+    
+    def _get_applicable_metrics(self, model) -> set:
+        """Restituisce i nomi delle metriche applicabili per questo modello"""
+        return set(self.calc.get_metrics_for_model(model).keys())
+    
+    def run_experiment(self, ds: dataset, 
+                       model: Union[Ensemble, abstract_rejection_decorator]) -> Dict:
         """
-        Esegue un esperimento calcolando le metriche dei gruppi specificati.
+        Esegue un esperimento calcolando automaticamente le metriche appropriate.
+        
+        Args:
+            ds: Dataset preparato
+            model: Ensemble o singolo classificatore con rejection
+        
+        Returns:
+            Dizionario con risultati
         """
-        X_train, X_test, y_train, y_test = ds.data
+        # Calcola metriche
+        metric_results = self.calc.calculate(ds, model)
         
-        # Addestra una sola volta
-        algorithm.train(X_train, y_train)
+        # Ottieni metriche applicabili
+        applicable_metrics = self._get_applicable_metrics(model)
         
-        # Estrai predizioni
-        predictions = algorithm.get_estimator_predictions(X_test)
-        y_test_array = y_test.values if hasattr(y_test, 'values') else y_test
-        predictions = predictions.astype(str)
-        y_test_array = y_test_array.astype(str)
-
-        # Genera nome esperimento automaticamente
-        experiment_name = f"{ds.dataset_name}_{algorithm.name}"
-        
-        # Inizializza risultati
+        # Costruisci risultato
         results = {
             "experiment_number": self._get_next_experiment_number(),
-            "experiment_name": experiment_name,
+            "experiment_name": self._get_experiment_name(model),
             "dataset_name": ds.dataset_name,
-            "classification_strategy": algorithm.name
+            "ensemble_type": self._get_ensemble_type(model),
+            "rejection_strategy": self._get_rejection_strategy(model)
         }
-
-        # Inizializza tutte le metriche a "non calcolata"
-        for col in self.COLUMNS[4:]:
-            results[col] = "non calcolata"
         
-        # Raccogli tutte le metriche da calcolare
-        metrics_to_compute = []
-        for group in metric_groups:
-            if group not in self.METRIC_GROUPS:
-                raise ValueError(f"Gruppo '{group}' non trovato. Disponibili: {list(self.METRIC_GROUPS.keys())}")
-            metrics_to_compute.extend(self.METRIC_GROUPS[group])
-        
-        # Calcola le metriche richieste
-        for metric_name in metrics_to_compute:
-            metric_class = self.METRIC_CLASSES[metric_name]
-            
-            if metric_name in self.METRICHE_CLASSICHE:
-                results[metric_name] = self._safe_compute(metric_class(), predictions, y_test_array)
-            
-            elif metric_name in self.METRICHE_DOPPIO:
-                pred_pair = predictions[:2, :]
-                if metric_name in ['recovery_correct_prediction_rate', 'recovery_wrong_prediction_rate', 
-                                'recovery_rejection_prediction_rate']:
-                    models_pair = [self._get_single_model(algorithm, i) for i in range(2)]
-                    results[metric_name] = self._safe_compute(metric_class(), pred_pair, y_test_array, X_test, models_pair)
-                else:
-                    results[metric_name] = self._safe_compute(metric_class(), pred_pair, y_test_array)
-            
-            elif metric_name in self.METRICHE_TERNA:
-                pred_triple = predictions[:3, :]
-                results[metric_name] = self._safe_compute(metric_class(), pred_triple, y_test_array)
+        # Popola metriche
+        for col in self.COLUMNS[5:]:
+            if col in metric_results:
+                results[col] = metric_results[col]
+            elif col in applicable_metrics:
+                # Metrica applicabile ma calcolo fallito
+                results[col] = None
+            else:
+                # Metrica non prevista per questo tipo di ensemble
+                results[col] = "non prevista"
         
         return results
     
-    """
-    def _get_single_model(self, algorithm, index: int):
-            Estrae un singolo modello dall'ensemble per le metriche che richiedono predict_proba
-        base_algo = algorithm.base_algorithm if hasattr(algorithm, 'base_algorithm') else algorithm
-        
-        if hasattr(base_algo.model, 'estimators_'):
-            return base_algo.model.estimators_[index]
-        else:
-            # Per modelli boosting, restituiamo il modello completo
-            return base_algo.model
-    """
-
-    def _get_single_model(self, algorithm, index: int):
-        """Estrae un singolo modello dall'ensemble per le metriche che richiedono predict_proba"""
-        base_algo = algorithm.base_algorithm if hasattr(algorithm, 'base_algorithm') else algorithm
-
-        # Random Patches usa sottoinsiemi di features - restituiamo il modello completo
-        if hasattr(base_algo.model,'estimators_features_'):
-            return base_algo.model
-        
-        if hasattr(base_algo.model, 'estimators_'):
-            estimator = base_algo.model.estimators_[index]
-            # GradientBoosting ha estimators_ come array 2D di regressori, non classificatori
-            if isinstance(estimator, np.ndarray):
-                return base_algo.model
-            elif hasattr(estimator, 'predict_proba'):
-                return estimator
-            else:
-                return base_algo.model
-        else:
-            return base_algo.model
-
-
-    def _safe_compute(self, metric, predictions, y_test, X_test=None, model=None):
-        """Esegue il calcolo in modo sicuro, restituendo None in caso di errore"""
-        try:
-            if X_test is not None and model is not None:
-                return metric._compute(predictions, y_test, X_test, model)
-            else:
-                return metric._compute(predictions, y_test)
-        except Exception as e:
-            print(f"Errore calcolo {metric.name}: {e}")
-            return None
-    
-
-    def save_experiment(self, results: dict):
+    def save_experiment(self, results: Dict):
         """Salva i risultati di un esperimento nel Megafile"""
         new_row = pd.DataFrame([results])
         self.df = pd.concat([self.df, new_row], ignore_index=True)
         self.df.to_csv(self.megafile_path, index=False)
-        print(f"✓ Esperimento #{results['experiment_number']} salvato in {self.megafile_path}")
+        print(f"✓ Esperimento '{results['experiment_name']}' salvato in {self.megafile_path}")
     
-
-    def run_and_save(self, ds, algorithm: ML_algorithm, 
-                 metric_groups: list, stratify: bool = True) -> dict:
+    def run_and_save(self, ds_name: str, 
+                     model: Union[Ensemble, abstract_rejection_decorator],
+                     stratify: bool = True) -> Dict:
         """
         Esegue un esperimento e lo salva automaticamente.
         
         Args:
-            ds: Nome del dataset (stringa) oppure oggetto dataset già preparato
-            algorithm: Algoritmo ML
-            metric_groups: Lista di gruppi di metriche (es. ['classiche', 'doppio', 'terna'])
-            stratify: Se True, usa stratify nello split (solo se ds è stringa)
+            ds_name: Nome del dataset (chiave in DATASETS)
+            model: Ensemble o singolo classificatore con rejection
+            stratify: Se True, usa stratify nello split
+        
+        Returns:
+            Dizionario con risultati
         """
-        # Se ds è una stringa, carica il dataset
-        if isinstance(ds, str):
-            if ds not in self.DATASETS:
-                raise ValueError(f"Dataset '{ds}' non trovato. Disponibili: {list(self.DATASETS.keys())}")
-            ds = dataset(self.DATASETS[ds], dataset_name=ds, stratify=stratify)
-            ds.preprocess()
-    
-        results = self.run_experiment(ds, algorithm, metric_groups)
+        if ds_name not in self.DATASETS:
+            raise ValueError(f"Dataset '{ds_name}' non trovato. Disponibili: {list(self.DATASETS.keys())}")
+        
+        ds = dataset(self.DATASETS[ds_name], dataset_name=ds_name, stratify=stratify)
+        ds.preprocess()
+        
+        results = self.run_experiment(ds, model)
         self.save_experiment(results)
         return results
     
-
     def delete_experiment(self, experiment_number: int):
-        """
-        Cancella un esperimento e rinumera i successivi.
-        
-        Args:
-            experiment_number: Numero dell'esperimento da cancellare
-        """
+        """Cancella un esperimento e rinumera i successivi."""
         if experiment_number not in self.df["experiment_number"].values:
             raise ValueError(f"Esperimento #{experiment_number} non trovato")
         
-        # Cancella la riga
         self.df = self.df[self.df["experiment_number"] != experiment_number]
-        
-        # Rinumera tutti gli esperimenti da 1 a N
         self.df = self.df.reset_index(drop=True)
         self.df["experiment_number"] = range(1, len(self.df) + 1)
-        
-        # Salva
         self.df.to_csv(self.megafile_path, index=False)
         print(f"✓ Esperimento #{experiment_number} cancellato e numerazione aggiornata")
 
 
-    def run_dual_rejection(self, ds, algorithm: ML_algorithm, 
-                       metric_groups: list,
-                       static_threshold: float = 0.9,
-                       rejection_percentile: float = 10.0,
-                       stratify: bool = True) -> tuple:
-        """
-        Esegue due esperimenti con stesso algoritmo ma due tecniche di rejection diverse.
-        Training eseguito UNA sola volta.
-        
-        Args:
-            ds: Nome dataset (stringa) o oggetto dataset già preparato
-            algorithm: Algoritmo ML base (senza rejection)
-            metric_groups: Lista gruppi metriche (es. ['classiche', 'doppio'])
-            static_threshold: Soglia per static rejection (default 0.9)
-            rejection_percentile: Percentile per percentile rejection (default 10.0)
-            stratify: Se True, usa stratify nello split
-        
-        Returns:
-            Tuple con i due dizionari di risultati (static, percentile)
-        """
-        # Carica dataset se stringa
-        if isinstance(ds, str):
-            if ds not in self.DATASETS:
-                raise ValueError(f"Dataset '{ds}' non trovato. Disponibili: {list(self.DATASETS.keys())}")
-            ds = dataset(self.DATASETS[ds], dataset_name=ds, stratify=stratify)
-            ds.preprocess()
-        
-        X_train, X_test, y_train, y_test = ds.data
-        
-        # Training UNA sola volta
-        print(f"\n{'='*60}")
-        print(f"Training {algorithm.name} (una sola volta)")
-        print(f"{'='*60}")
-        algorithm.train(X_train, y_train)
-        
-        # Crea i due decorator sullo stesso modello addestrato
-        algo_static = static_threshold_rejection_decorator(algorithm, confidence_threshold=static_threshold)
-        algo_percentile = percentile_threshold_rejection_decorator(algorithm, rejection_percentile=rejection_percentile)
-        
-        results_list = []
-        
-        for algo_with_rej, rej_name, rej_value in [
-            (algo_static, "static", static_threshold),
-            (algo_percentile, "percentile", rejection_percentile)
-        ]:
-            print(f"\n--- Calcolo metriche per {rej_name} rejection ---")
-            
-            # Estrai predizioni con rejection
-            predictions = algo_with_rej.get_estimator_predictions(X_test)
-            y_test_array = y_test.values if hasattr(y_test, 'values') else y_test
-            predictions = predictions.astype(str)
-            y_test_array = y_test_array.astype(str)
-            
-            # Genera nome esperimento
-            experiment_name = f"{ds.dataset_name}_{algorithm.name}_{algorithm.n_estimators}_{rej_name}_{rej_value}"
-            
-            # Inizializza risultati
-            results = {
-                "experiment_number": self._get_next_experiment_number(),
-                "experiment_name": experiment_name,
-                "dataset_name": ds.dataset_name,
-                "classification_strategy": algo_with_rej.name
-            }
-            
-            # Inizializza tutte le metriche a "non calcolata"
-            for col in self.COLUMNS[4:]:
-                results[col] = "non calcolata"
-            
-            # Raccogli metriche da calcolare
-            metrics_to_compute = []
-            for group in metric_groups:
-                if group not in self.METRIC_GROUPS:
-                    raise ValueError(f"Gruppo '{group}' non trovato. Disponibili: {list(self.METRIC_GROUPS.keys())}")
-                metrics_to_compute.extend(self.METRIC_GROUPS[group])
-            
-            # Calcola le metriche
-            for metric_name in metrics_to_compute:
-                metric_class = self.METRIC_CLASSES[metric_name]
-                
-                if metric_name in self.METRICHE_CLASSICHE:
-                    results[metric_name] = self._safe_compute(metric_class(), predictions, y_test_array)
-                
-                elif metric_name in self.METRICHE_DOPPIO:
-                    pred_pair = predictions[:2, :]
-                    if metric_name in ['recovery_correct_prediction_rate', 'recovery_wrong_prediction_rate', 
-                                    'recovery_rejection_prediction_rate']:
-                        models_pair = [self._get_single_model(algo_with_rej, i) for i in range(2)]
-                        results[metric_name] = self._safe_compute(metric_class(), pred_pair, y_test_array, X_test, models_pair)
-                    else:
-                        results[metric_name] = self._safe_compute(metric_class(), pred_pair, y_test_array)
-                
-                elif metric_name in self.METRICHE_TERNA:
-                    pred_triple = predictions[:3, :]
-                    results[metric_name] = self._safe_compute(metric_class(), pred_triple, y_test_array)
-            
-            # Salva esperimento
-            self.save_experiment(results)
-            results_list.append(results)
-        
-        return tuple(results_list)
-
-
 if __name__ == "__main__":
+    from ML_algorithms.random_forest import random_forest
+    from ML_algorithms.xgboost import xgboost
+    from rejection_techniques.static_threshold_rejection_decorator import static_threshold_rejection_decorator
     
-    """
-    algo = rotation_forest(n_estimators=2)
-    algo_with_rej = static_threshold_rejection_decorator(algo, confidence_threshold=0.9)
-        
+    
+    rf = random_forest()
+    xgb = xgboost()
+    
+    rf_rej = static_threshold_rejection_decorator(rf, confidence_threshold=0.5)
+    xgb_rej = static_threshold_rejection_decorator(xgb, confidence_threshold=0.5)
+    
+    ensemble = Voting2of2Ensemble([rf_rej, xgb_rej])
+    
     logger = ExperimentLogger()
-    results = logger.run_and_save('arancino_all_scikit', algo_with_rej, ['classiche', 'doppio'])
-        
+    results = logger.run_and_save('arancino_all_scikit', ensemble)
+    
     print("\nRisultati:")
     for k, v in results.items():
-        print(f"  {k}: {v}")
-    """
+        if v is not None and v != "non prevista":
+            print(f"  {k}: {v}")
 
     """
     logger = ExperimentLogger()
     logger.delete_experiment(1)
     """
-
-    logger = ExperimentLogger()
-    algo = random_patches(n_estimators=2)
-
-    results = logger.run_dual_rejection(
-    'arancino_all_scikit',
-    algo,
-    ['classiche', 'doppio']
-)
-    

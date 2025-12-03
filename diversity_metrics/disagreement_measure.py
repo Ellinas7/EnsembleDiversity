@@ -17,7 +17,7 @@ class disagreement_measure(diversity_metric):
                 # Crea la maschera per ignorare i reject
                 valid_mask = self._get_valid_mask(predictions[i, :], predictions[j, :])
 
-                 # Se non ci sono campioni validi, salta questa coppia
+                # Se non ci sono campioni validi, salta questa coppia
                 if np.sum(valid_mask) == 0:
                     continue
 
