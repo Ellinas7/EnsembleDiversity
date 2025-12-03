@@ -1,4 +1,5 @@
-# app.py
+import sys
+import io
 
 import streamlit as st
 import pandas as pd
@@ -20,7 +21,6 @@ from ML_algorithms.adaboost import adaboost
 from ML_algorithms.xgboost import xgboost
 from ML_algorithms.light_gbm import light_gbm
 from ML_algorithms.catboost import catboost
-from ML_algorithms.gradient_boosting_decision_trees import gradient_boosting_decision_trees
 from ML_algorithms.random_patches import random_patches
 from ML_algorithms.rotation_forest import rotation_forest
 from ML_algorithms.random_rotation_forest import random_rotation_forest
@@ -31,6 +31,16 @@ from ML_algorithms.logistic_regression import logistic_regression
 # Rejection techniques
 from rejection_techniques.static_threshold_rejection_decorator import static_threshold_rejection_decorator
 from rejection_techniques.percentile_threshold_rejection_decorator import percentile_threshold_rejection_decorator
+
+# Sopprimi i print durante l'esecuzione Streamlit
+class SuppressPrints:
+    def __enter__(self):
+        self._original_stdout = sys.stdout
+        sys.stdout = io.StringIO()
+        return self
+    
+    def __exit__(self, *args):
+        sys.stdout = self._original_stdout
 
 # Configurazione pagina
 st.set_page_config(page_title="Ensemble Experiment Runner", layout="wide")
@@ -44,7 +54,6 @@ ALGORITHMS = {
     "XGBoost": xgboost,
     "LightGBM": light_gbm,
     "CatBoost": catboost,
-    "Gradient Boosting": gradient_boosting_decision_trees,
     "Random Patches": random_patches,
     "Rotation Forest": rotation_forest,
     "Random Rotation Forest": random_rotation_forest,
@@ -144,6 +153,19 @@ def get_rejection_strategy(rejection_name: str) -> str:
         return "static_threshold_0.9"
     else:
         return "percentile_threshold_10"
+    
+def delete_experiment(ensemble_type: str, experiment_number: int):
+    """Cancella un esperimento e rinumera i successivi."""
+    df = load_or_create_file(ensemble_type)
+    
+    if experiment_number not in df["experiment_number"].values:
+        raise ValueError(f"Esperimento #{experiment_number} non trovato")
+    
+    df = df[df["experiment_number"] != experiment_number]
+    df = df.reset_index(drop=True)
+    df["experiment_number"] = range(1, len(df) + 1)
+    df.to_csv(FILE_PATHS[ensemble_type], index=False)
+    return experiment_number
 
 
 # Sidebar
@@ -205,9 +227,10 @@ if st.sidebar.button("🚀 Esegui Esperimento", type="primary"):
                 
                 # Addestra tutti i classificatori base
                 X_train, X_test, y_train, y_test = ds.data
-                for clf in base_classifiers:
-                    clf.train(X_train, y_train)
-                
+                with SuppressPrints():
+                    for clf in base_classifiers:
+                        clf.train(X_train, y_train)
+                        
                 calc = metric_calculator()
                 df = load_or_create_file(ensemble_type)
                 
@@ -271,3 +294,14 @@ if st.sidebar.button("Mostra esperimenti correnti"):
         st.dataframe(df)
     else:
         st.info("Nessun esperimento presente in questo file.")
+
+st.sidebar.markdown("---")
+st.sidebar.subheader("🗑️ Cancella Esperimento")
+exp_to_delete = st.sidebar.number_input("Numero esperimento", min_value=1, step=1)
+
+if st.sidebar.button("Cancella", type="secondary"):
+    try:
+        delete_experiment(ensemble_type, int(exp_to_delete))
+        st.sidebar.success(f"✅ Esperimento #{int(exp_to_delete)} cancellato")
+    except ValueError as e:
+        st.sidebar.error(str(e))

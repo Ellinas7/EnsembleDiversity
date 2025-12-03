@@ -219,11 +219,11 @@ if __name__ == "__main__":
     from rejection_techniques.static_threshold_rejection_decorator import static_threshold_rejection_decorator
     
     
-    rf = random_forest()
-    xgb = xgboost()
+    D1 = random_forest()
+    D2 = xgboost()
     
-    rf_rej = static_threshold_rejection_decorator(rf, confidence_threshold=0.5)
-    xgb_rej = static_threshold_rejection_decorator(xgb, confidence_threshold=0.5)
+    rf_rej = static_threshold_rejection_decorator(D1, confidence_threshold=0.9)
+    xgb_rej = static_threshold_rejection_decorator(D2, confidence_threshold=0.9)
     
     ensemble = Voting2of2Ensemble([rf_rej, xgb_rej])
     
