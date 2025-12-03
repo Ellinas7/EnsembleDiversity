@@ -156,7 +156,7 @@ class metric_calculator:
         return metrics
     
     def calculate(self, ds: dataset, model: Union[Ensemble, abstract_rejection_decorator],
-                  metrics: List[str] = None) -> Dict[str, float]:
+                  metrics: List[str] = None, skip_training: bool = False) -> Dict[str, float]:
         """
         Calcola le metriche per un modello (ensemble o singolo classificatore).
         
@@ -164,14 +164,16 @@ class metric_calculator:
             ds: Dataset preparato
             model: Ensemble o classificatore con rejection
             metrics: Lista di metriche da calcolare (None = tutte quelle appropriate)
+            skip_training: Se True, salta il training (modelli già addestrati)
         
         Returns:
             Dizionario {nome_metrica: valore}
         """
         X_train, X_test, y_train, y_test = ds.data
-        
-        # Training
-        model.train(X_train, y_train)
+
+        # Training (se non già fatto)
+        if not skip_training:
+            model.train(X_train, y_train)
         
         # Determina metriche disponibili per questo modello
         available_metrics = self.get_metrics_for_model(model)
