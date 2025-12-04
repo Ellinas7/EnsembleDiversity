@@ -11,8 +11,8 @@ from ML_algorithms.ML_algorithm import ML_algorithm
 class rotation_forest(ML_algorithm):
     """Rotation Forest Classifier (implementazione manuale)"""
     
-    def __init__(self, n_estimators: int = 20, random_state: int = 42, 
-                 n_jobs: int = -1, max_depth=10, min_samples_split=2,
+    def __init__(self, n_estimators: int = 10, random_state: int = 42, 
+                 n_jobs: int = 1, max_depth=10, min_samples_split=2,
                  min_samples_leaf=1, n_features_per_subset=3):
         super().__init__(n_estimators, random_state)
         self.n_jobs = n_jobs

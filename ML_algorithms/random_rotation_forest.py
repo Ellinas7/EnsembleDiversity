@@ -12,7 +12,7 @@ class random_rotation_forest(ML_algorithm):
     """Random Rotation Forest Classifier"""
     
     def __init__(self, n_estimators: int = 20, random_state: int = 42, 
-                 n_jobs: int = -1, max_features=None, bootstrap=True, 
+                 n_jobs: int = 1, max_features=None, bootstrap=True, 
                  max_depth=None, min_samples_split=2, min_samples_leaf=1,
                  criterion="gini"):
         super().__init__(n_estimators, random_state)
