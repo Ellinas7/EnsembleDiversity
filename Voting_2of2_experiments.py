@@ -67,11 +67,10 @@ ALGORITHMS = {
     "random_rotation_forest": random_rotation_forest,
     "gaussian_nb": gaussian_nb,
     "knn": knn,
-    "logistic_regression": logistic_regression,
-    "logitboost": logitboost
+    "logistic_regression": logistic_regression
 }
 
-# 25 coppie (usa i nomi delle chiavi di ALGORITHMS)
+# 20 coppie (usa i nomi delle chiavi di ALGORITHMS)
 PAIRS = [
     ("random_forest", "gaussian_nb"),
     ("random_forest", "knn"),
@@ -87,17 +86,12 @@ PAIRS = [
     ("light_gbm", "knn"),
     ("catboost", "gaussian_nb"),
     ("catboost", "logistic_regression"),
+    ("catboost", "rotation_forest"),
     ("adaboost", "gaussian_nb"),
     ("adaboost", "knn"),
     ("random_rotation_forest", "gaussian_nb"),
     ("random_rotation_forest", "knn"),
-    ("random_patches", "xgboost"),
-    ("gaussian_nb", "knn"),
-    ("catboost", "rotation_forest"),
-    ("logitboost", "gaussian_nb"),
-    ("logitboost", "knn"),
-    ("logitboost", "logistic_regression"),
-    ("logitboost", "rotation_forest"),
+    ("random_patches", "xgboost")
 ]
 
 REJECTION_TECHNIQUES = {
