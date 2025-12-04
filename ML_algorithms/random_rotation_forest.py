@@ -11,7 +11,7 @@ from ML_algorithms.ML_algorithm import ML_algorithm
 class random_rotation_forest(ML_algorithm):
     """Random Rotation Forest Classifier"""
     
-    def __init__(self, n_estimators: int = 100, random_state: int = 42, 
+    def __init__(self, n_estimators: int = 30, random_state: int = 42, 
                  n_jobs: int = -1, max_features=None, bootstrap=True, 
                  max_depth=None, min_samples_split=2, min_samples_leaf=1,
                  criterion="gini"):
