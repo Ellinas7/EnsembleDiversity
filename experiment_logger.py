@@ -217,16 +217,17 @@ if __name__ == "__main__":
     from ML_algorithms.random_forest import random_forest
     from ML_algorithms.xgboost import xgboost
     from ML_algorithms.rotation_forest import rotation_forest
+    from ML_algorithms.random_rotation_forest import random_rotation_forest
     from rejection_techniques.static_threshold_rejection_decorator import static_threshold_rejection_decorator
     
     
     D1 = random_forest()
-    D2 = rotation_forest()
+    D2 = random_rotation_forest()
     
     rf_rej = static_threshold_rejection_decorator(D1, confidence_threshold=0.9)
-    rotf_rej = static_threshold_rejection_decorator(D2, confidence_threshold=0.9)
+    randrotf_rej = static_threshold_rejection_decorator(D2, confidence_threshold=0.9)
     
-    ensemble = Voting2of2Ensemble([rf_rej, rotf_rej])
+    ensemble = Voting2of2Ensemble([rf_rej, randrotf_rej])
     
     logger = ExperimentLogger()
     results = logger.run_and_save('arancino_all_scikit', ensemble)
