@@ -54,6 +54,12 @@ class dataset:
         X = self._df.drop('multilabel', axis=1)
         y = self._df['multilabel']
         
+        # Rimuovi colonne non numeriche
+        non_numeric_cols = X.select_dtypes(exclude=[np.number]).columns.tolist()
+        if non_numeric_cols:
+            print(f"  → Rimosse {len(non_numeric_cols)} colonne non numeriche: {non_numeric_cols}")
+            X = X.select_dtypes(include=[np.number])
+        
         # Gestione valori mancanti
         X = self._handle_missing_values(X)
         

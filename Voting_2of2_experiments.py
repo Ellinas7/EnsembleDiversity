@@ -30,7 +30,6 @@ from ML_algorithms.random_rotation_forest import random_rotation_forest
 from ML_algorithms.gaussian_nb import gaussian_nb
 from ML_algorithms.k_nearest_neighbors import knn
 from ML_algorithms.logistic_regression import logistic_regression
-from ML_algorithms.logitboost import logitboost
 
 # Rejection techniques
 from rejection_techniques.static_threshold_rejection_decorator import static_threshold_rejection_decorator
@@ -44,12 +43,12 @@ DATASETS = {
     'mafaulda': '/Users/matteopascuzzo/Desktop/Datasets/Error Detection/MAFAULDA.csv',
     'mechfailure_electriccomponent_scikit': '/Users/matteopascuzzo/Desktop/Datasets/Error Detection/MechFailure_ElectricComponent_scikit.csv',
     'scaniatrucks_aps_scikit': '/Users/matteopascuzzo/Desktop/Datasets/Error Detection/ScaniaTrucks_APS_scikit.csv',
-    'backblaze_2017_5percrate_scikit': '/Users/matteopascuzzo/Desktop/Datasets/Error Detection/BackBlaze_2017_5PercRate_scikit.csv',
-    'backblaze_2023': '/Users/matteopascuzzo/Desktop/Datasets/Error Detection/BackBlaze_2023.csv',
-    'baidu_smartdataset_15perc_scikit': '/Users/matteopascuzzo/Desktop/Datasets/Error Detection/Baidu_SMART Dataset_15Perc_scikit.csv',
-    'baiot_mirai': '/Users/matteopascuzzo/Desktop/Datasets/Error Detection/BAIoT_mirai.csv',
-    'full_iot_ids_dataset_scikit': '/Users/matteopascuzzo/Desktop/Datasets/Error Detection/Full_IoT_IDS_Dataset_scikit.csv',
-    'iscx_meta': '/Users/matteopascuzzo/Desktop/Datasets/Error Detection/ISCX_Meta.csv'
+    'backblaze_2017_5percrate_scikit': '/Users/matteopascuzzo/Desktop/Datasets/HW_Failure/BackBlaze_2017_5PercRate_scikit.csv',
+    'backblaze_2023': '/Users/matteopascuzzo/Desktop/Datasets/HW_Failure/BackBlaze_2023.csv',
+    'baidu_smartdataset_15perc_scikit': '/Users/matteopascuzzo/Desktop/Datasets/HW_Failure/Baidu_SMART Dataset_15Perc_scikit.csv',
+    'baiot_mirai': '/Users/matteopascuzzo/Desktop/Datasets/NIDS/BAIoT_mirai.csv',
+    'full_iot_ids_dataset_scikit': '/Users/matteopascuzzo/Desktop/Datasets/NIDS/Full_IoT_IDS_Dataset_scikit.csv',
+    'iscx_meta': '/Users/matteopascuzzo/Desktop/Datasets/NIDS/ISCX_Meta.csv'
 }
 
 OUTPUT_FILE = "/Users/matteopascuzzo/Desktop/Voting2outof2.csv"
