@@ -39,8 +39,15 @@ class acceptance_accuracy(diversity_metric):
         # Identifica dove ci sono rejection
         is_rejected = (predictions == "reject")
         
-        # La predizione sottostante sarebbe corretta se argmax(probas) == y_test
-        is_correct = (np.argmax(probas, axis=1) == y_test)
+        # Ottieni le classi dal modello per convertire indici in label
+        if hasattr(model, 'base_algorithm'):
+            classes = model.base_algorithm.model.classes_
+        else:
+            classes = model.model.classes_
+        
+        # La predizione sottostante sarebbe corretta se la classe predetta == y_test
+        predicted_classes = classes[np.argmax(probas, axis=1)]
+        is_correct = (predicted_classes.astype(str) == np.array(y_test).astype(str))
         
         # Calcola le 4 categorie della rejection matrix
         TA = np.sum(is_correct & ~is_rejected)   # Corrette E accettate
