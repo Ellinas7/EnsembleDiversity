@@ -1,17 +1,20 @@
-from ML_algorithms.ML_algorithm import ML_algorithm
+from classifiers.classifier import Classifier
 from catboost import CatBoostClassifier
 import numpy as np
 from sklearn.preprocessing import LabelEncoder
 
 
-class catboost(ML_algorithm):
+class CatBoost(Classifier):
     """CatBoost Classifier con label encoding automatico"""
     
     def __init__(self, n_estimators: int = 100, random_state: int = 42, 
                  max_depth: int = 6, learning_rate: float = 0.1):
-        super().__init__(n_estimators, random_state)
+        super().__init__()
+        self.n_estimators = n_estimators
+        self.random_state = random_state
         self.max_depth = max_depth
         self.learning_rate = learning_rate
+        self.model = None
         self.label_encoder = None
     
     def _create_model(self):
@@ -23,7 +26,7 @@ class catboost(ML_algorithm):
             verbose=0,
             allow_writing_files=False
         )
-    
+
     def train(self, X_train: np.ndarray, y_train: np.ndarray) -> None:
         if self.model is None:
             self.model = self._create_model()
@@ -45,7 +48,7 @@ class catboost(ML_algorithm):
         print(f"Training {self.name}...")
         self.model.fit(X_train, y_train_encoded)
         print(f"✓ {self.name} addestrato")
-    
+
     def predict(self, X_test: np.ndarray) -> np.ndarray:
         if self.model is None:
             raise ValueError("Modello non ancora addestrato. Chiama train() prima.")

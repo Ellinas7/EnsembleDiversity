@@ -1,3 +1,4 @@
+from classifiers.classifier import Classifier
 import numpy as np
 from sklearn.tree import DecisionTreeClassifier
 from sklearn.utils.validation import check_X_y, check_array
@@ -5,17 +6,18 @@ from sklearn.utils.multiclass import unique_labels
 from sklearn.preprocessing import LabelEncoder
 from scipy.linalg import qr
 from scipy.stats import mode
-from ML_algorithms.ML_algorithm import ML_algorithm
 
 
-class random_rotation_forest(ML_algorithm):
+class RandomRotationForest(Classifier):
     """Random Rotation Forest Classifier"""
     
     def __init__(self, n_estimators: int = 20, random_state: int = 42, 
                  n_jobs: int = 1, max_features=None, bootstrap=True, 
                  max_depth=None, min_samples_split=2, min_samples_leaf=1,
                  criterion="gini"):
-        super().__init__(n_estimators, random_state)
+        super().__init__()
+        self.n_estimators = n_estimators
+        self.random_state = random_state
         self.n_jobs = n_jobs
         self.max_features = max_features
         self.bootstrap = bootstrap
@@ -35,10 +37,7 @@ class random_rotation_forest(ML_algorithm):
         if np.linalg.det(M) < 0:
             M[:, 0] = -M[:, 0]
         return M.astype(np.float32)
-    
-    def _create_model(self):
-        return self
-    
+
     def train(self, X_train: np.ndarray, y_train: np.ndarray) -> None:
         X_train, y_train = check_X_y(X_train, y_train)
         
@@ -82,9 +81,8 @@ class random_rotation_forest(ML_algorithm):
             tree.fit(X_rotated, y_sample)
             self.estimators_.append(tree)
         
-        self.model = self
         print(f"✓ {self.name} addestrato")
-    
+
     def predict(self, X_test: np.ndarray) -> np.ndarray:
         if not self.estimators_:
             raise ValueError("Modello non ancora addestrato.")

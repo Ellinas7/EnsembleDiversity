@@ -1,23 +1,24 @@
+from classifiers.rejection_decorator import RejectionDecorator
+from classifiers.classifier import Classifier
 import numpy as np
-from .abstract_rejection_decorator import abstract_rejection_decorator
 
 
-class static_threshold_rejection_decorator(abstract_rejection_decorator):
+class StaticThreshold(RejectionDecorator):
     """
     Decorator che implementa rejection con soglia statica/fissa.
     
     Rifiuta tutte le predizioni con confidenza < threshold.
     """
     
-    def __init__(self, base_algorithm, confidence_threshold: float = 0.9):
+    def __init__(self, base_classifier: Classifier, confidence_threshold: float = 0.9):
         """
         Args:
-            base_algorithm: Istanza di ML_algorithm da decorare
+            base_classifier: Istanza di Classifier da decorare
             confidence_threshold: Soglia minima di confidenza (default 0.9 = 90%)
         """
-        super().__init__(base_algorithm)
+        super().__init__(base_classifier)
         self.confidence_threshold = confidence_threshold
-        self.name = f"{base_algorithm.name}_static_threshold_{float(confidence_threshold)}"
+        self.name = f"{base_classifier.name}_static_{confidence_threshold}"
     
     def _calculate_threshold(self, confidences: np.ndarray) -> float:
         """Restituisce la soglia fissa configurata"""

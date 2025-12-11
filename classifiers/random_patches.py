@@ -1,9 +1,10 @@
-from ML_algorithms.ML_algorithm import ML_algorithm
+from classifiers.classifier import Classifier
 from sklearn.ensemble import BaggingClassifier
 from sklearn.tree import DecisionTreeClassifier
 import numpy as np
 
-class random_patches(ML_algorithm):
+
+class RandomPatches(Classifier):
     """
     Random Patches Ensemble Classifier.
     
@@ -17,19 +18,13 @@ class random_patches(ML_algorithm):
                  max_features: float = 0.5,
                  random_state: int = 42,
                  n_jobs: int = -1):
-        """
-        Args:
-            n_estimators: Numero di base learners nell'ensemble
-            max_samples: Frazione di campioni da campionare (0 < max_samples <= 1.0)
-            max_features: Frazione di features da campionare (0 < max_features <= 1.0)
-            random_state: Seed per riproducibilità
-            n_jobs: Numero di core da usare (-1 = tutti)
-        """
-        super().__init__(n_estimators, random_state)
+        super().__init__()
+        self.n_estimators = n_estimators
         self.max_samples = max_samples
         self.max_features = max_features
+        self.random_state = random_state
         self.n_jobs = n_jobs
-        self.name = "RandomPatches"
+        self.model = None
     
     def _create_model(self):
         return BaggingClassifier(
@@ -42,3 +37,21 @@ class random_patches(ML_algorithm):
             random_state=self.random_state,
             n_jobs=self.n_jobs
         )
+
+    def train(self, X_train: np.ndarray, y_train: np.ndarray) -> None:
+        if self.model is None:
+            self.model = self._create_model()
+        
+        print(f"Training {self.name}...")
+        self.model.fit(X_train, y_train)
+        print(f"✓ {self.name} addestrato")
+
+    def predict(self, X_test: np.ndarray) -> np.ndarray:
+        if self.model is None:
+            raise ValueError("Modello non ancora addestrato. Chiama train() prima.")
+        return self.model.predict(X_test)
+    
+    def predict_proba(self, X_test: np.ndarray) -> np.ndarray:
+        if self.model is None:
+            raise ValueError("Modello non ancora addestrato. Chiama train() prima.")
+        return self.model.predict_proba(X_test)

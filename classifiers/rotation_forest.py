@@ -1,3 +1,4 @@
+from classifiers.classifier import Classifier
 import numpy as np
 from sklearn.tree import DecisionTreeClassifier
 from sklearn.decomposition import PCA
@@ -5,16 +6,17 @@ from sklearn.utils.validation import check_X_y, check_array
 from sklearn.utils.multiclass import unique_labels
 from sklearn.preprocessing import LabelEncoder
 from scipy.stats import mode
-from ML_algorithms.ML_algorithm import ML_algorithm
 
 
-class rotation_forest(ML_algorithm):
+class RotationForest(Classifier):
     """Rotation Forest Classifier (implementazione manuale)"""
     
     def __init__(self, n_estimators: int = 10, random_state: int = 42, 
                  n_jobs: int = 1, max_depth=10, min_samples_split=2,
                  min_samples_leaf=1, n_features_per_subset=3):
-        super().__init__(n_estimators, random_state)
+        super().__init__()
+        self.n_estimators = n_estimators
+        self.random_state = random_state
         self.n_jobs = n_jobs
         self.max_depth = max_depth
         self.min_samples_split = min_samples_split
@@ -23,9 +25,6 @@ class rotation_forest(ML_algorithm):
         self.label_encoder_ = None
         self.estimators_ = []
         self.rotation_matrices_ = []
-    
-    def _create_model(self):
-        return self
     
     def _build_rotation_matrix(self, X, random_state):
         """Costruisce una matrice di rotazione usando PCA su sottoinsiemi di features"""
@@ -61,7 +60,7 @@ class rotation_forest(ML_algorithm):
             start = end
         
         return rotation_matrix
-    
+
     def train(self, X_train: np.ndarray, y_train: np.ndarray) -> None:
         X_train, y_train = check_X_y(X_train, y_train)
         
@@ -93,9 +92,8 @@ class rotation_forest(ML_algorithm):
             tree.fit(X_rotated, y_encoded)
             self.estimators_.append(tree)
         
-        self.model = self
         print(f"✓ {self.name} addestrato")
-    
+
     def predict(self, X_test: np.ndarray) -> np.ndarray:
         if not self.estimators_:
             raise ValueError("Modello non ancora addestrato.")
