@@ -16,10 +16,10 @@ from classifiers.knn import KNN
 from classifiers.logistic_regression import LogisticRegression
 
 # Classificatori composite (ensemble)
-from classifiers.voting_2of2 import Voting2of2
+from classifiers.voting_2outof2 import Voting2outof2
 from classifiers.recovery_block import RecoveryBlock
 from classifiers.majority_voting import MajorityVoting
-from classifiers.voting_1ofn import Voting1ofN
+from classifiers.voting_1outofN import Voting1outofN
 
 # Rejection decorators
 from classifiers.rejection_decorator import RejectionDecorator
