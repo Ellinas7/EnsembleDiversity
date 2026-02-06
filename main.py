@@ -1,10 +1,13 @@
 """
-Script OTTIMIZZATO per generare gli 8 CSV con le nuove metriche fondamentali.
+Script per eseguire gli esperimenti sulle configurazioni selezionate.
 
-Ottimizzazione: ogni classificatore base viene addestrato UNA SOLA VOLTA per dataset.
-I RejectionDecorator usano solo predict_proba() del modello già addestrato.
+Genera 16 CSV di output:
+- 4 per coppie static (2 gruppi * 2 ensemble)
+- 4 per coppie percentile (2 gruppi * 2 ensemble)
+- 4 per triple static (2 gruppi * 2 ensemble)
+- 4 per triple percentile (2 gruppi * 2 ensemble)
 
-Output: 8 CSV (4 tipi ensemble × 2 rejection strategies)
+Ogni classificatore viene addestrato UNA SOLA VOLTA per dataset.
 """
 
 import pandas as pd
@@ -65,7 +68,6 @@ CLASSIFIER_MAP = {
     'random_patches': RandomPatches,
     'xgboost': XGBoost,
     'light_gbm': LightGBM,
-    'lightgbm': LightGBM,
     'catboost': CatBoost,
     'adaboost': AdaBoost,
     'rotation_forest': RotationForest,
@@ -78,16 +80,126 @@ CLASSIFIER_MAP = {
 # Directory output
 OUTPUT_DIR = Path("/Users/matteopascuzzo/Desktop/Results")
 
-# Path CSV input
-INPUT_DIR = Path("/Users/matteopascuzzo/Desktop")
+
+# === CONFIGURAZIONI SELEZIONATE (dalle 8 tabelle del Capitolo 4) ===
+
+# Coppie Static - Gruppo 1: dw (basso), kw (alto), dr (basso)
+COPPIE_STATIC_GRUPPO1 = [
+    ('logistic_regression', 'random_forest'),
+    ('extra_trees', 'knn'),
+    ('knn', 'random_forest'),
+    ('random_patches', 'xgboost'),
+    ('random_forest', 'rotation_forest'),
+    ('gaussian_nb', 'random_forest'),
+    ('knn', 'light_gbm'),
+    ('logistic_regression', 'xgboost'),
+    ('knn', 'xgboost'),
+    ('extra_trees', 'gaussian_nb'),
+]
+
+# Coppie Static - Gruppo 2: dc (alto), dw (basso)
+COPPIE_STATIC_GRUPPO2 = [
+    ('rotation_forest', 'xgboost'),
+    ('random_forest', 'rotation_forest'),
+    ('catboost', 'rotation_forest'),
+    ('knn', 'xgboost'),
+    ('knn', 'light_gbm'),
+    ('knn', 'random_forest'),
+    ('extra_trees', 'knn'),
+    ('knn', 'random_rotation_forest'),
+    ('random_patches', 'xgboost'),
+    ('gaussian_nb', 'xgboost'),
+]
+
+# Coppie Percentile - Gruppo 1: dc (alto), dw (basso)
+COPPIE_PERCENTILE_GRUPPO1 = [
+    ('knn', 'random_rotation_forest'),
+    ('knn', 'random_forest'),
+    ('extra_trees', 'knn'),
+    ('random_forest', 'rotation_forest'),
+    ('knn', 'xgboost'),
+    ('knn', 'light_gbm'),
+    ('catboost', 'rotation_forest'),
+    ('random_patches', 'xgboost'),
+    ('rotation_forest', 'xgboost'),
+    ('logistic_regression', 'random_forest'),
+]
+
+# Coppie Percentile - Gruppo 2: rc (alto), rw (basso), cfd (alto), gd (alto)
+COPPIE_PERCENTILE_GRUPPO2 = [
+    ('knn', 'xgboost'),
+    ('knn', 'random_forest'),
+    ('extra_trees', 'knn'),
+    ('knn', 'light_gbm'),
+    ('knn', 'random_rotation_forest'),
+    ('random_forest', 'rotation_forest'),
+    ('random_patches', 'xgboost'),
+    ('rotation_forest', 'xgboost'),
+    ('catboost', 'rotation_forest'),
+    ('logistic_regression', 'random_forest'),
+]
+
+# Triple Static - Gruppo 1: mvc (alto), mvr (basso)
+TRIPLE_STATIC_GRUPPO1 = [
+    ('gaussian_nb', 'knn', 'xgboost'),
+    ('gaussian_nb', 'knn', 'light_gbm'),
+    ('gaussian_nb', 'knn', 'random_forest'),
+    ('knn', 'random_forest', 'rotation_forest'),
+    ('extra_trees', 'gaussian_nb', 'knn'),
+    ('knn', 'logistic_regression', 'xgboost'),
+    ('gaussian_nb', 'rotation_forest', 'xgboost'),
+    ('knn', 'light_gbm', 'logistic_regression'),
+    ('catboost', 'gaussian_nb', 'knn'),
+    ('knn', 'logistic_regression', 'random_forest'),
+]
+
+# Triple Static - Gruppo 2: df (basso), cfd (alto), svw (basso)
+TRIPLE_STATIC_GRUPPO2 = [
+    ('knn', 'random_forest', 'rotation_forest'),
+    ('adaboost', 'gaussian_nb', 'knn'),
+    ('gaussian_nb', 'random_forest', 'rotation_forest'),
+    ('adaboost', 'knn', 'logistic_regression'),
+    ('gaussian_nb', 'rotation_forest', 'xgboost'),
+    ('gaussian_nb', 'knn', 'random_forest'),
+    ('extra_trees', 'gaussian_nb', 'knn'),
+    ('gaussian_nb', 'knn', 'xgboost'),
+    ('knn', 'logistic_regression', 'random_forest'),
+    ('gaussian_nb', 'knn', 'light_gbm'),
+]
+
+# Triple Percentile - Gruppo 1: mvc (alto), mvw (basso)
+TRIPLE_PERCENTILE_GRUPPO1 = [
+    ('knn', 'logistic_regression', 'random_forest'),
+    ('gaussian_nb', 'knn', 'random_forest'),
+    ('knn', 'random_forest', 'rotation_forest'),
+    ('extra_trees', 'gaussian_nb', 'knn'),
+    ('knn', 'logistic_regression', 'rotation_forest'),
+    ('gaussian_nb', 'knn', 'rotation_forest'),
+    ('gaussian_nb', 'knn', 'xgboost'),
+    ('knn', 'logistic_regression', 'xgboost'),
+    ('gaussian_nb', 'knn', 'light_gbm'),
+    ('knn', 'light_gbm', 'logistic_regression'),
+]
+
+# Triple Percentile - Gruppo 2: isvr (alto), svw (basso)
+TRIPLE_PERCENTILE_GRUPPO2 = [
+    ('knn', 'random_forest', 'rotation_forest'),
+    ('knn', 'logistic_regression', 'xgboost'),
+    ('knn', 'light_gbm', 'logistic_regression'),
+    ('adaboost', 'gaussian_nb', 'knn'),
+    ('adaboost', 'knn', 'logistic_regression'),
+    ('gaussian_nb', 'knn', 'xgboost'),
+    ('knn', 'logistic_regression', 'rotation_forest'),
+    ('extra_trees', 'gaussian_nb', 'logistic_regression'),
+    ('gaussian_nb', 'knn', 'light_gbm'),
+    ('catboost', 'gaussian_nb', 'knn'),
+]
 
 
 # === FUNZIONI METRICHE ===
 
 def calculate_fundamental_metrics(predictions: np.ndarray, y_test: np.ndarray) -> dict:
-    """
-    Calcola le 3 metriche fondamentali: correct_rate, misclassification_rate, rejection_rate
-    """
+    """Calcola correct_rate, misclassification_rate, rejection_rate"""
     predictions = np.array(predictions).astype(str)
     y_test = np.array(y_test).astype(str)
     n = len(y_test)
@@ -103,74 +215,23 @@ def calculate_fundamental_metrics(predictions: np.ndarray, y_test: np.ndarray) -
     }
 
 
-def calculate_double_metrics(pred_clf1: np.ndarray, pred_clf2: np.ndarray, y_test: np.ndarray) -> dict:
-    """
-    Calcola le metriche double_* per una coppia di classificatori.
-    """
-    pred_clf1 = np.array(pred_clf1).astype(str)
-    pred_clf2 = np.array(pred_clf2).astype(str)
-    y_test = np.array(y_test).astype(str)
-    n = len(y_test)
-    
-    is_correct_1 = (pred_clf1 == y_test)
-    is_correct_2 = (pred_clf2 == y_test)
-    is_rejected_1 = (pred_clf1 == "reject")
-    is_rejected_2 = (pred_clf2 == "reject")
-    is_wrong_1 = ~is_correct_1 & ~is_rejected_1
-    is_wrong_2 = ~is_correct_2 & ~is_rejected_2
-    
-    N11 = np.sum(is_correct_1 & is_correct_2)
-    N00 = np.sum(is_wrong_1 & is_wrong_2)
-    Nqq = np.sum(is_rejected_1 & is_rejected_2)
-    
-    return {
-        'double_correct_prediction_rate': N11 / n,
-        'double_wrong_prediction_rate': N00 / n,
-        'double_rejection_rate': Nqq / n
-    }
-
-
 # === FASE 1: ADDESTRAMENTO CLASSIFICATORI ===
 
-def get_all_classifier_names_from_csvs():
-    """Estrae tutti i nomi dei classificatori usati nei CSV"""
+def get_all_classifier_names():
+    """Estrae tutti i nomi dei classificatori usati nelle configurazioni"""
     classifier_names = set()
     
-    # Da Voting2outof2
-    df = pd.read_csv(INPUT_DIR / "Voting2outof2.csv")
-    for _, row in df.iterrows():
-        names = row['experiment_name'].split('+')
-        classifier_names.update(names)
+    # Da tutte le coppie
+    for coppia in (COPPIE_STATIC_GRUPPO1 + COPPIE_STATIC_GRUPPO2 + 
+                   COPPIE_PERCENTILE_GRUPPO1 + COPPIE_PERCENTILE_GRUPPO2):
+        classifier_names.update(coppia)
     
-    # Da RecoveryBlock
-    df = pd.read_csv(INPUT_DIR / "RecoveryBlock.csv")
-    classifier_names.update(df['primary_classifier'].unique())
-    classifier_names.update(df['secondary_classifier'].unique())
-    
-    # Da MajorityVoting
-    df = pd.read_csv(INPUT_DIR / "MajorityVoting.csv")
-    classifier_names.update(df['classifier_1'].unique())
-    classifier_names.update(df['classifier_2'].unique())
-    classifier_names.update(df['classifier_3'].unique())
-    
-    # Da Voting1outofN
-    df = pd.read_csv(INPUT_DIR / "Voting1outofN.csv")
-    classifier_names.update(df['classifier_1'].unique())
-    classifier_names.update(df['classifier_2'].unique())
-    classifier_names.update(df['classifier_3'].unique())
+    # Da tutte le triple
+    for tripla in (TRIPLE_STATIC_GRUPPO1 + TRIPLE_STATIC_GRUPPO2 + 
+                   TRIPLE_PERCENTILE_GRUPPO1 + TRIPLE_PERCENTILE_GRUPPO2):
+        classifier_names.update(tripla)
     
     return classifier_names
-
-
-def get_all_dataset_names_from_csvs():
-    """Estrae tutti i nomi dei dataset usati nei CSV"""
-    dataset_names = set()
-    
-    for csv_file in ["Voting2outof2.csv", "RecoveryBlock.csv", "MajorityVoting.csv", "Voting1outofN.csv"]:
-        df = pd.read_csv(INPUT_DIR / csv_file)
-        dataset_names.update(df['dataset_name'].unique())
-    
-    return dataset_names
 
 
 def train_all_classifiers():
@@ -185,28 +246,23 @@ def train_all_classifiers():
     print("FASE 1: ADDESTRAMENTO CLASSIFICATORI BASE")
     print("="*70)
     
-    classifier_names = get_all_classifier_names_from_csvs()
-    dataset_names = get_all_dataset_names_from_csvs()
+    classifier_names = get_all_classifier_names()
     
     print(f"\nClassificatori da addestrare: {sorted(classifier_names)}")
-    print(f"Dataset: {sorted(dataset_names)}")
-    print(f"Totale addestramenti: {len(classifier_names)} × {len(dataset_names)} = {len(classifier_names) * len(dataset_names)}")
+    print(f"Dataset: {len(DATASETS)}")
+    print(f"Totale addestramenti: {len(classifier_names)} × {len(DATASETS)} = {len(classifier_names) * len(DATASETS)}")
     
     trained_models = {}
     dataset_data = {}
     
-    for ds_name in sorted(dataset_names):
+    for ds_name, ds_path in DATASETS.items():
         print(f"\n{'='*50}")
         print(f"DATASET: {ds_name}")
         print(f"{'='*50}")
         
-        if ds_name not in DATASETS:
-            print(f"  ⚠ Dataset non trovato in DATASETS, skip")
-            continue
-        
         # Carica dataset
         try:
-            ds = dataset(DATASETS[ds_name], dataset_name=ds_name)
+            ds = dataset(ds_path, dataset_name=ds_name)
             ds.preprocess()
             X_train, X_test, y_train, y_test = ds.data
             dataset_data[ds_name] = (X_train, X_test, y_train, y_test)
@@ -217,15 +273,12 @@ def train_all_classifiers():
         trained_models[ds_name] = {}
         
         for clf_name in sorted(classifier_names):
-            clf_name_lower = clf_name.lower().replace(' ', '_').replace('-', '_')
-            
-            if clf_name_lower not in CLASSIFIER_MAP:
+            if clf_name not in CLASSIFIER_MAP:
                 print(f"  ⚠ Classificatore '{clf_name}' non trovato, skip")
                 continue
             
             try:
-                # Crea e addestra il classificatore
-                clf = CLASSIFIER_MAP[clf_name_lower]()
+                clf = CLASSIFIER_MAP[clf_name]()
                 clf.train(X_train, y_train)
                 trained_models[ds_name][clf_name] = clf
                 print(f"  ✓ {clf_name}")
@@ -240,13 +293,10 @@ def train_all_classifiers():
     return trained_models, dataset_data
 
 
-# === FASE 2: PROCESSAMENTO CSV ===
+# === FASE 2: PROCESSAMENTO CONFIGURAZIONI ===
 
 def wrap_with_rejection(trained_clf, rejection_type: str):
-    """
-    Wrappa un classificatore GIÀ ADDESTRATO con un rejection decorator.
-    NON riaddestra il modello.
-    """
+    """Wrappa un classificatore GIÀ ADDESTRATO con un rejection decorator."""
     if rejection_type == 'static':
         return StaticThreshold(trained_clf, confidence_threshold=0.9)
     elif rejection_type == 'percentile':
@@ -255,393 +305,219 @@ def wrap_with_rejection(trained_clf, rejection_type: str):
         raise ValueError(f"Rejection type sconosciuto: {rejection_type}")
 
 
-def process_voting2of2(trained_models: dict, dataset_data: dict, output_dir: Path):
-    """Processa Voting2outof2.csv"""
-    print("\n" + "="*70)
-    print("FASE 2A: PROCESSING VOTING 2 OF 2")
-    print("="*70)
+def process_coppie(trained_models: dict, dataset_data: dict, output_dir: Path,
+                   coppie: list, rejection_type: str, gruppo_name: str):
+    """
+    Processa le coppie con Voting2su2 e RecoveryBlock.
     
-    df = pd.read_csv(INPUT_DIR / "Voting2outof2.csv")
+    Args:
+        coppie: lista di tuple (clf1_name, clf2_name)
+        rejection_type: 'static' o 'percentile'
+        gruppo_name: es. 'CoppieStaticGruppo1'
+    """
+    print(f"\n{'='*70}")
+    print(f"PROCESSING {gruppo_name} - {rejection_type}")
+    print(f"{'='*70}")
     
-    results_static = []
-    results_percentile = []
+    results_voting = []
+    results_recovery = []
     
-    for idx, row in df.iterrows():
-        ds_name = row['dataset_name']
+    for clf1_name, clf2_name in coppie:
+        experiment_name = f"{clf1_name}+{clf2_name}"
         
-        if ds_name not in trained_models or ds_name not in dataset_data:
-            continue
-        
-        X_train, X_test, y_train, y_test = dataset_data[ds_name]
-        
-        # Estrai nomi classificatori
-        clf_names = row['experiment_name'].split('+')
-        if len(clf_names) != 2:
-            continue
-        
-        clf1_name, clf2_name = clf_names
-        
-        if clf1_name not in trained_models[ds_name] or clf2_name not in trained_models[ds_name]:
-            continue
-        
-        # Determina rejection type
-        rejection_type = 'static' if 'static' in row['rejection_strategy'] else 'percentile'
-        
-        # Recupera modelli già addestrati e wrappa con rejection
-        clf1_base = trained_models[ds_name][clf1_name]
-        clf2_base = trained_models[ds_name][clf2_name]
-        
-        clf1 = wrap_with_rejection(clf1_base, rejection_type)
-        clf2 = wrap_with_rejection(clf2_base, rejection_type)
-        
-        # Predizioni (NO training!)
-        pred_clf1 = clf1.predict(X_test)
-        pred_clf2 = clf2.predict(X_test)
-        
-        # Ensemble prediction
-        ensemble = Voting2outof2([clf1, clf2])
-        pred_ensemble = ensemble.predict(X_test)
-        
-        # Calcola metriche
-        metrics_ensemble = calculate_fundamental_metrics(pred_ensemble, y_test)
-        metrics_clf1 = calculate_fundamental_metrics(pred_clf1, y_test)
-        metrics_clf2 = calculate_fundamental_metrics(pred_clf2, y_test)
-        
-        # Costruisci riga risultato
-        result_row = {
-            'experiment_number': row['experiment_number'],
-            'experiment_name': row['experiment_name'],
-            'dataset_name': ds_name,
-            'ensemble_type': row['ensemble_type'],
-            'classifier_1': clf1_name,
-            'classifier_2': clf2_name,
-            'ensemble_correct_rate': metrics_ensemble['correct_rate'],
-            'ensemble_misclassification_rate': metrics_ensemble['misclassification_rate'],
-            'ensemble_rejection_rate': metrics_ensemble['rejection_rate'],
-            'classifier_1_correct_rate': metrics_clf1['correct_rate'],
-            'classifier_1_misclassification_rate': metrics_clf1['misclassification_rate'],
-            'classifier_1_rejection_rate': metrics_clf1['rejection_rate'],
-            'classifier_2_correct_rate': metrics_clf2['correct_rate'],
-            'classifier_2_misclassification_rate': metrics_clf2['misclassification_rate'],
-            'classifier_2_rejection_rate': metrics_clf2['rejection_rate'],
-            'q_statistic': row['q_statistic'],
-            'disagreement_measure': row['disagreement_measure'],
-            'double_fault_measure': row['double_fault_measure'],
-            'entropy_measure': row['entropy_measure'],
-            'kohavi_wolpert_variance': row['kohavi_wolpert_variance'],
-            'generalized_diversity': row['generalized_diversity'],
-            'coincident_failure_diversity': row['coincident_failure_diversity'],
-            'double_correct_prediction_rate': row['double_correct_prediction_rate'],
-            'double_wrong_prediction_rate': row['double_wrong_prediction_rate'],
-            'double_rejection_rate': row['double_rejection_rate']
-        }
-        
-        if rejection_type == 'static':
-            results_static.append(result_row)
-        else:
-            results_percentile.append(result_row)
+        for ds_name in dataset_data.keys():
+            if ds_name not in trained_models:
+                continue
+            
+            if clf1_name not in trained_models[ds_name] or clf2_name not in trained_models[ds_name]:
+                print(f"  ⚠ Skip {experiment_name} su {ds_name} - classificatore mancante")
+                continue
+            
+            X_train, X_test, y_train, y_test = dataset_data[ds_name]
+            
+            # Recupera modelli già addestrati e wrappa con rejection
+            clf1_base = trained_models[ds_name][clf1_name]
+            clf2_base = trained_models[ds_name][clf2_name]
+            
+            clf1 = wrap_with_rejection(clf1_base, rejection_type)
+            clf2 = wrap_with_rejection(clf2_base, rejection_type)
+            
+            # Predizioni base
+            pred_clf1 = clf1.predict(X_test)
+            pred_clf2 = clf2.predict(X_test)
+            
+            metrics_clf1 = calculate_fundamental_metrics(pred_clf1, y_test)
+            metrics_clf2 = calculate_fundamental_metrics(pred_clf2, y_test)
+            
+            # === VOTING 2 SU 2 ===
+            ensemble_voting = Voting2outof2([clf1, clf2])
+            pred_voting = ensemble_voting.predict(X_test)
+            metrics_voting = calculate_fundamental_metrics(pred_voting, y_test)
+            
+            results_voting.append({
+                'experiment_name': experiment_name,
+                'dataset_name': ds_name,
+                'classifier_1': clf1_name,
+                'classifier_2': clf2_name,
+                'ensemble_correct_rate': metrics_voting['correct_rate'],
+                'ensemble_misclassification_rate': metrics_voting['misclassification_rate'],
+                'ensemble_rejection_rate': metrics_voting['rejection_rate'],
+                'classifier_1_correct_rate': metrics_clf1['correct_rate'],
+                'classifier_1_misclassification_rate': metrics_clf1['misclassification_rate'],
+                'classifier_1_rejection_rate': metrics_clf1['rejection_rate'],
+                'classifier_2_correct_rate': metrics_clf2['correct_rate'],
+                'classifier_2_misclassification_rate': metrics_clf2['misclassification_rate'],
+                'classifier_2_rejection_rate': metrics_clf2['rejection_rate'],
+            })
+            
+            # === RECOVERY BLOCK ===
+            # Testiamo entrambi gli ordini e prendiamo clf1 -> clf2
+            ensemble_recovery = RecoveryBlock([clf1, clf2])
+            pred_recovery = ensemble_recovery.predict(X_test)
+            metrics_recovery = calculate_fundamental_metrics(pred_recovery, y_test)
+            
+            results_recovery.append({
+                'experiment_name': experiment_name,
+                'dataset_name': ds_name,
+                'classifier_1': clf1_name,
+                'classifier_2': clf2_name,
+                'ensemble_correct_rate': metrics_recovery['correct_rate'],
+                'ensemble_misclassification_rate': metrics_recovery['misclassification_rate'],
+                'ensemble_rejection_rate': metrics_recovery['rejection_rate'],
+                'classifier_1_correct_rate': metrics_clf1['correct_rate'],
+                'classifier_1_misclassification_rate': metrics_clf1['misclassification_rate'],
+                'classifier_1_rejection_rate': metrics_clf1['rejection_rate'],
+                'classifier_2_correct_rate': metrics_clf2['correct_rate'],
+                'classifier_2_misclassification_rate': metrics_clf2['misclassification_rate'],
+                'classifier_2_rejection_rate': metrics_clf2['rejection_rate'],
+            })
     
     # Salva CSV
-    if results_static:
-        df_static = pd.DataFrame(results_static)
-        df_static.to_csv(output_dir / "Voting2outof2_Static.csv", index=False)
-        print(f"✓ Voting2outof2_Static.csv ({len(results_static)} righe)")
+    if results_voting:
+        df_voting = pd.DataFrame(results_voting)
+        filename_voting = f"{gruppo_name}_Voting2su2.csv"
+        df_voting.to_csv(output_dir / filename_voting, index=False)
+        print(f"✓ {filename_voting} ({len(results_voting)} righe)")
     
-    if results_percentile:
-        df_percentile = pd.DataFrame(results_percentile)
-        df_percentile.to_csv(output_dir / "Voting2outof2_Percentile.csv", index=False)
-        print(f"✓ Voting2outof2_Percentile.csv ({len(results_percentile)} righe)")
+    if results_recovery:
+        df_recovery = pd.DataFrame(results_recovery)
+        filename_recovery = f"{gruppo_name}_RecoveryBlock.csv"
+        df_recovery.to_csv(output_dir / filename_recovery, index=False)
+        print(f"✓ {filename_recovery} ({len(results_recovery)} righe)")
 
 
-def process_recovery_block(trained_models: dict, dataset_data: dict, output_dir: Path):
-    """Processa RecoveryBlock.csv"""
-    print("\n" + "="*70)
-    print("FASE 2B: PROCESSING RECOVERY BLOCK")
-    print("="*70)
+def process_triple(trained_models: dict, dataset_data: dict, output_dir: Path,
+                   triple: list, rejection_type: str, gruppo_name: str):
+    """
+    Processa le triple con MajorityVoting e Voting1suN.
     
-    df = pd.read_csv(INPUT_DIR / "RecoveryBlock.csv")
+    Args:
+        triple: lista di tuple (clf1_name, clf2_name, clf3_name)
+        rejection_type: 'static' o 'percentile'
+        gruppo_name: es. 'TripleStaticGruppo1'
+    """
+    print(f"\n{'='*70}")
+    print(f"PROCESSING {gruppo_name} - {rejection_type}")
+    print(f"{'='*70}")
     
-    results_static = []
-    results_percentile = []
+    results_majority = []
+    results_1ofn = []
     
-    for idx, row in df.iterrows():
-        ds_name = row['dataset_name']
+    for clf1_name, clf2_name, clf3_name in triple:
+        experiment_name = f"{clf1_name}+{clf2_name}+{clf3_name}"
         
-        if ds_name not in trained_models or ds_name not in dataset_data:
-            continue
-        
-        X_train, X_test, y_train, y_test = dataset_data[ds_name]
-        
-        clf1_name = row['primary_classifier']
-        clf2_name = row['secondary_classifier']
-        
-        if clf1_name not in trained_models[ds_name] or clf2_name not in trained_models[ds_name]:
-            continue
-        
-        rejection_type = 'static' if 'static' in row['rejection_strategy'] else 'percentile'
-        
-        clf1_base = trained_models[ds_name][clf1_name]
-        clf2_base = trained_models[ds_name][clf2_name]
-        
-        clf1 = wrap_with_rejection(clf1_base, rejection_type)
-        clf2 = wrap_with_rejection(clf2_base, rejection_type)
-        
-        pred_clf1 = clf1.predict(X_test)
-        pred_clf2 = clf2.predict(X_test)
-        
-        ensemble = RecoveryBlock([clf1, clf2])
-        pred_ensemble = ensemble.predict(X_test)
-        
-        metrics_ensemble = calculate_fundamental_metrics(pred_ensemble, y_test)
-        metrics_clf1 = calculate_fundamental_metrics(pred_clf1, y_test)
-        metrics_clf2 = calculate_fundamental_metrics(pred_clf2, y_test)
-        double_metrics = calculate_double_metrics(pred_clf1, pred_clf2, y_test)
-        
-        result_row = {
-            'experiment_number': row['experiment_number'],
-            'experiment_name': row['experiment_name'],
-            'dataset_name': ds_name,
-            'ensemble_type': row['ensemble_type'],
-            'classifier_1': clf1_name,
-            'classifier_2': clf2_name,
-            'ensemble_correct_rate': metrics_ensemble['correct_rate'],
-            'ensemble_misclassification_rate': metrics_ensemble['misclassification_rate'],
-            'ensemble_rejection_rate': metrics_ensemble['rejection_rate'],
-            'classifier_1_correct_rate': metrics_clf1['correct_rate'],
-            'classifier_1_misclassification_rate': metrics_clf1['misclassification_rate'],
-            'classifier_1_rejection_rate': metrics_clf1['rejection_rate'],
-            'classifier_2_correct_rate': metrics_clf2['correct_rate'],
-            'classifier_2_misclassification_rate': metrics_clf2['misclassification_rate'],
-            'classifier_2_rejection_rate': metrics_clf2['rejection_rate'],
-            'q_statistic': row['q_statistic'],
-            'disagreement_measure': row['disagreement_measure'],
-            'double_fault_measure': row['double_fault_measure'],
-            'entropy_measure': row['entropy_measure'],
-            'kohavi_wolpert_variance': row['kohavi_wolpert_variance'],
-            'generalized_diversity': row['generalized_diversity'],
-            'coincident_failure_diversity': row['coincident_failure_diversity'],
-            'double_correct_prediction_rate': double_metrics['double_correct_prediction_rate'],
-            'double_wrong_prediction_rate': double_metrics['double_wrong_prediction_rate'],
-            'double_rejection_rate': double_metrics['double_rejection_rate'],
-            'recovery_rate': row['recovery_rate'],
-            'recovery_failure_rate': row['recovery_failure_rate'],
-            'recovery_rejection_rate': row['recovery_rejection_rate'],
-            'recovery_correct_prediction_rate': row['recovery_correct_prediction_rate'],
-            'recovery_wrong_prediction_rate': row['recovery_wrong_prediction_rate'],
-            'recovery_rejection_prediction_rate': row['recovery_rejection_prediction_rate']
-        }
-        
-        if rejection_type == 'static':
-            results_static.append(result_row)
-        else:
-            results_percentile.append(result_row)
+        for ds_name in dataset_data.keys():
+            if ds_name not in trained_models:
+                continue
+            
+            if (clf1_name not in trained_models[ds_name] or 
+                clf2_name not in trained_models[ds_name] or
+                clf3_name not in trained_models[ds_name]):
+                print(f"  ⚠ Skip {experiment_name} su {ds_name} - classificatore mancante")
+                continue
+            
+            X_train, X_test, y_train, y_test = dataset_data[ds_name]
+            
+            # Recupera modelli già addestrati e wrappa con rejection
+            clf1_base = trained_models[ds_name][clf1_name]
+            clf2_base = trained_models[ds_name][clf2_name]
+            clf3_base = trained_models[ds_name][clf3_name]
+            
+            clf1 = wrap_with_rejection(clf1_base, rejection_type)
+            clf2 = wrap_with_rejection(clf2_base, rejection_type)
+            clf3 = wrap_with_rejection(clf3_base, rejection_type)
+            
+            # Predizioni base
+            pred_clf1 = clf1.predict(X_test)
+            pred_clf2 = clf2.predict(X_test)
+            pred_clf3 = clf3.predict(X_test)
+            
+            metrics_clf1 = calculate_fundamental_metrics(pred_clf1, y_test)
+            metrics_clf2 = calculate_fundamental_metrics(pred_clf2, y_test)
+            metrics_clf3 = calculate_fundamental_metrics(pred_clf3, y_test)
+            
+            # === MAJORITY VOTING ===
+            ensemble_majority = MajorityVoting([clf1, clf2, clf3])
+            pred_majority = ensemble_majority.predict(X_test)
+            metrics_majority = calculate_fundamental_metrics(pred_majority, y_test)
+            
+            results_majority.append({
+                'experiment_name': experiment_name,
+                'dataset_name': ds_name,
+                'classifier_1': clf1_name,
+                'classifier_2': clf2_name,
+                'classifier_3': clf3_name,
+                'ensemble_correct_rate': metrics_majority['correct_rate'],
+                'ensemble_misclassification_rate': metrics_majority['misclassification_rate'],
+                'ensemble_rejection_rate': metrics_majority['rejection_rate'],
+                'classifier_1_correct_rate': metrics_clf1['correct_rate'],
+                'classifier_1_misclassification_rate': metrics_clf1['misclassification_rate'],
+                'classifier_1_rejection_rate': metrics_clf1['rejection_rate'],
+                'classifier_2_correct_rate': metrics_clf2['correct_rate'],
+                'classifier_2_misclassification_rate': metrics_clf2['misclassification_rate'],
+                'classifier_2_rejection_rate': metrics_clf2['rejection_rate'],
+                'classifier_3_correct_rate': metrics_clf3['correct_rate'],
+                'classifier_3_misclassification_rate': metrics_clf3['misclassification_rate'],
+                'classifier_3_rejection_rate': metrics_clf3['rejection_rate'],
+            })
+            
+            # === VOTING 1 SU N ===
+            ensemble_1ofn = Voting1outofN([clf1, clf2, clf3])
+            pred_1ofn = ensemble_1ofn.predict(X_test)
+            metrics_1ofn = calculate_fundamental_metrics(pred_1ofn, y_test)
+            
+            results_1ofn.append({
+                'experiment_name': experiment_name,
+                'dataset_name': ds_name,
+                'classifier_1': clf1_name,
+                'classifier_2': clf2_name,
+                'classifier_3': clf3_name,
+                'ensemble_correct_rate': metrics_1ofn['correct_rate'],
+                'ensemble_misclassification_rate': metrics_1ofn['misclassification_rate'],
+                'ensemble_rejection_rate': metrics_1ofn['rejection_rate'],
+                'classifier_1_correct_rate': metrics_clf1['correct_rate'],
+                'classifier_1_misclassification_rate': metrics_clf1['misclassification_rate'],
+                'classifier_1_rejection_rate': metrics_clf1['rejection_rate'],
+                'classifier_2_correct_rate': metrics_clf2['correct_rate'],
+                'classifier_2_misclassification_rate': metrics_clf2['misclassification_rate'],
+                'classifier_2_rejection_rate': metrics_clf2['rejection_rate'],
+                'classifier_3_correct_rate': metrics_clf3['correct_rate'],
+                'classifier_3_misclassification_rate': metrics_clf3['misclassification_rate'],
+                'classifier_3_rejection_rate': metrics_clf3['rejection_rate'],
+            })
     
-    if results_static:
-        df_static = pd.DataFrame(results_static)
-        df_static.to_csv(output_dir / "RecoveryBlock_Static.csv", index=False)
-        print(f"✓ RecoveryBlock_Static.csv ({len(results_static)} righe)")
+    # Salva CSV
+    if results_majority:
+        df_majority = pd.DataFrame(results_majority)
+        filename_majority = f"{gruppo_name}_MajorityVoting.csv"
+        df_majority.to_csv(output_dir / filename_majority, index=False)
+        print(f"✓ {filename_majority} ({len(results_majority)} righe)")
     
-    if results_percentile:
-        df_percentile = pd.DataFrame(results_percentile)
-        df_percentile.to_csv(output_dir / "RecoveryBlock_Percentile.csv", index=False)
-        print(f"✓ RecoveryBlock_Percentile.csv ({len(results_percentile)} righe)")
-
-
-def process_majority_voting(trained_models: dict, dataset_data: dict, output_dir: Path):
-    """Processa MajorityVoting.csv"""
-    print("\n" + "="*70)
-    print("FASE 2C: PROCESSING MAJORITY VOTING")
-    print("="*70)
-    
-    df = pd.read_csv(INPUT_DIR / "MajorityVoting.csv")
-    
-    results_static = []
-    results_percentile = []
-    
-    for idx, row in df.iterrows():
-        ds_name = row['dataset_name']
-        
-        if ds_name not in trained_models or ds_name not in dataset_data:
-            continue
-        
-        X_train, X_test, y_train, y_test = dataset_data[ds_name]
-        
-        clf1_name = row['classifier_1']
-        clf2_name = row['classifier_2']
-        clf3_name = row['classifier_3']
-        
-        if (clf1_name not in trained_models[ds_name] or 
-            clf2_name not in trained_models[ds_name] or
-            clf3_name not in trained_models[ds_name]):
-            continue
-        
-        rejection_type = 'static' if 'static' in row['rejection_strategy'] else 'percentile'
-        
-        clf1_base = trained_models[ds_name][clf1_name]
-        clf2_base = trained_models[ds_name][clf2_name]
-        clf3_base = trained_models[ds_name][clf3_name]
-        
-        clf1 = wrap_with_rejection(clf1_base, rejection_type)
-        clf2 = wrap_with_rejection(clf2_base, rejection_type)
-        clf3 = wrap_with_rejection(clf3_base, rejection_type)
-        
-        pred_clf1 = clf1.predict(X_test)
-        pred_clf2 = clf2.predict(X_test)
-        pred_clf3 = clf3.predict(X_test)
-        
-        ensemble = MajorityVoting([clf1, clf2, clf3])
-        pred_ensemble = ensemble.predict(X_test)
-        
-        metrics_ensemble = calculate_fundamental_metrics(pred_ensemble, y_test)
-        metrics_clf1 = calculate_fundamental_metrics(pred_clf1, y_test)
-        metrics_clf2 = calculate_fundamental_metrics(pred_clf2, y_test)
-        metrics_clf3 = calculate_fundamental_metrics(pred_clf3, y_test)
-        
-        result_row = {
-            'experiment_number': row['experiment_number'],
-            'experiment_name': row['experiment_name'],
-            'dataset_name': ds_name,
-            'ensemble_type': row['ensemble_type'],
-            'classifier_1': clf1_name,
-            'classifier_2': clf2_name,
-            'classifier_3': clf3_name,
-            'ensemble_correct_rate': metrics_ensemble['correct_rate'],
-            'ensemble_misclassification_rate': metrics_ensemble['misclassification_rate'],
-            'ensemble_rejection_rate': metrics_ensemble['rejection_rate'],
-            'classifier_1_correct_rate': metrics_clf1['correct_rate'],
-            'classifier_1_misclassification_rate': metrics_clf1['misclassification_rate'],
-            'classifier_1_rejection_rate': metrics_clf1['rejection_rate'],
-            'classifier_2_correct_rate': metrics_clf2['correct_rate'],
-            'classifier_2_misclassification_rate': metrics_clf2['misclassification_rate'],
-            'classifier_2_rejection_rate': metrics_clf2['rejection_rate'],
-            'classifier_3_correct_rate': metrics_clf3['correct_rate'],
-            'classifier_3_misclassification_rate': metrics_clf3['misclassification_rate'],
-            'classifier_3_rejection_rate': metrics_clf3['rejection_rate'],
-            'q_statistic': row['q_statistic'],
-            'disagreement_measure': row['disagreement_measure'],
-            'double_fault_measure': row['double_fault_measure'],
-            'entropy_measure': row['entropy_measure'],
-            'kohavi_wolpert_variance': row['kohavi_wolpert_variance'],
-            'generalized_diversity': row['generalized_diversity'],
-            'coincident_failure_diversity': row['coincident_failure_diversity'],
-            'majority_voting_correct_prediction_rate': row['majority_voting_correct_prediction_rate'],
-            'majority_voting_wrong_prediction_rate': row['majority_voting_wrong_prediction_rate'],
-            'majority_voting_rejection_prediction_rate': row['majority_voting_rejection_prediction_rate']
-        }
-        
-        if rejection_type == 'static':
-            results_static.append(result_row)
-        else:
-            results_percentile.append(result_row)
-    
-    if results_static:
-        df_static = pd.DataFrame(results_static)
-        df_static.to_csv(output_dir / "MajorityVoting_Static.csv", index=False)
-        print(f"✓ MajorityVoting_Static.csv ({len(results_static)} righe)")
-    
-    if results_percentile:
-        df_percentile = pd.DataFrame(results_percentile)
-        df_percentile.to_csv(output_dir / "MajorityVoting_Percentile.csv", index=False)
-        print(f"✓ MajorityVoting_Percentile.csv ({len(results_percentile)} righe)")
-
-
-def process_voting_1ofn(trained_models: dict, dataset_data: dict, output_dir: Path):
-    """Processa Voting1outofN.csv"""
-    print("\n" + "="*70)
-    print("FASE 2D: PROCESSING VOTING 1 OF N")
-    print("="*70)
-    
-    df = pd.read_csv(INPUT_DIR / "Voting1outofN.csv")
-    
-    results_static = []
-    results_percentile = []
-    
-    for idx, row in df.iterrows():
-        ds_name = row['dataset_name']
-        
-        if ds_name not in trained_models or ds_name not in dataset_data:
-            continue
-        
-        X_train, X_test, y_train, y_test = dataset_data[ds_name]
-        
-        clf1_name = row['classifier_1']
-        clf2_name = row['classifier_2']
-        clf3_name = row['classifier_3']
-        
-        if (clf1_name not in trained_models[ds_name] or 
-            clf2_name not in trained_models[ds_name] or
-            clf3_name not in trained_models[ds_name]):
-            continue
-        
-        rejection_type = 'static' if 'static' in row['rejection_strategy'] else 'percentile'
-        
-        clf1_base = trained_models[ds_name][clf1_name]
-        clf2_base = trained_models[ds_name][clf2_name]
-        clf3_base = trained_models[ds_name][clf3_name]
-        
-        clf1 = wrap_with_rejection(clf1_base, rejection_type)
-        clf2 = wrap_with_rejection(clf2_base, rejection_type)
-        clf3 = wrap_with_rejection(clf3_base, rejection_type)
-        
-        pred_clf1 = clf1.predict(X_test)
-        pred_clf2 = clf2.predict(X_test)
-        pred_clf3 = clf3.predict(X_test)
-        
-        ensemble = Voting1outofN([clf1, clf2, clf3])
-        pred_ensemble = ensemble.predict(X_test)
-        
-        metrics_ensemble = calculate_fundamental_metrics(pred_ensemble, y_test)
-        metrics_clf1 = calculate_fundamental_metrics(pred_clf1, y_test)
-        metrics_clf2 = calculate_fundamental_metrics(pred_clf2, y_test)
-        metrics_clf3 = calculate_fundamental_metrics(pred_clf3, y_test)
-        
-        result_row = {
-            'experiment_number': row['experiment_number'],
-            'experiment_name': row['experiment_name'],
-            'dataset_name': ds_name,
-            'ensemble_type': row['ensemble_type'],
-            'classifier_1': clf1_name,
-            'classifier_2': clf2_name,
-            'classifier_3': clf3_name,
-            'ensemble_correct_rate': metrics_ensemble['correct_rate'],
-            'ensemble_misclassification_rate': metrics_ensemble['misclassification_rate'],
-            'ensemble_rejection_rate': metrics_ensemble['rejection_rate'],
-            'classifier_1_correct_rate': metrics_clf1['correct_rate'],
-            'classifier_1_misclassification_rate': metrics_clf1['misclassification_rate'],
-            'classifier_1_rejection_rate': metrics_clf1['rejection_rate'],
-            'classifier_2_correct_rate': metrics_clf2['correct_rate'],
-            'classifier_2_misclassification_rate': metrics_clf2['misclassification_rate'],
-            'classifier_2_rejection_rate': metrics_clf2['rejection_rate'],
-            'classifier_3_correct_rate': metrics_clf3['correct_rate'],
-            'classifier_3_misclassification_rate': metrics_clf3['misclassification_rate'],
-            'classifier_3_rejection_rate': metrics_clf3['rejection_rate'],
-            'q_statistic': row['q_statistic'],
-            'disagreement_measure': row['disagreement_measure'],
-            'double_fault_measure': row['double_fault_measure'],
-            'entropy_measure': row['entropy_measure'],
-            'kohavi_wolpert_variance': row['kohavi_wolpert_variance'],
-            'generalized_diversity': row['generalized_diversity'],
-            'coincident_failure_diversity': row['coincident_failure_diversity'],
-            'single_vote_correct_prediction_rate': row['single_vote_correct_prediction_rate'],
-            'single_vote_wrong_prediction_rate': row['single_vote_wrong_prediction_rate'],
-            'single_vote_rejection_rate': row['single_vote_rejection_rate'],
-            'ideal_single_vote_rate': row['ideal_single_vote_rate']
-        }
-        
-        if rejection_type == 'static':
-            results_static.append(result_row)
-        else:
-            results_percentile.append(result_row)
-    
-    if results_static:
-        df_static = pd.DataFrame(results_static)
-        df_static.to_csv(output_dir / "Voting1outofN_Static.csv", index=False)
-        print(f"✓ Voting1outofN_Static.csv ({len(results_static)} righe)")
-    
-    if results_percentile:
-        df_percentile = pd.DataFrame(results_percentile)
-        df_percentile.to_csv(output_dir / "Voting1outofN_Percentile.csv", index=False)
-        print(f"✓ Voting1outofN_Percentile.csv ({len(results_percentile)} righe)")
+    if results_1ofn:
+        df_1ofn = pd.DataFrame(results_1ofn)
+        filename_1ofn = f"{gruppo_name}_Voting1suN.csv"
+        df_1ofn.to_csv(output_dir / filename_1ofn, index=False)
+        print(f"✓ {filename_1ofn} ({len(results_1ofn)} righe)")
 
 
 # === MAIN ===
@@ -650,8 +526,10 @@ def main():
     start_time = time.time()
     
     print("="*70)
-    print("GENERAZIONE CSV CON METRICHE FONDAMENTALI (OTTIMIZZATO)")
+    print("ESPERIMENTI SULLE CONFIGURAZIONI SELEZIONATE")
     print("="*70)
+    print(f"Output: 16 file CSV")
+    print(f"Directory: {OUTPUT_DIR}")
     
     # Crea directory output
     OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
@@ -659,16 +537,37 @@ def main():
     # FASE 1: Addestra tutti i classificatori una sola volta
     trained_models, dataset_data = train_all_classifiers()
     
-    # FASE 2: Processa i CSV usando i modelli già addestrati
-    process_voting2of2(trained_models, dataset_data, OUTPUT_DIR)
-    process_recovery_block(trained_models, dataset_data, OUTPUT_DIR)
-    process_majority_voting(trained_models, dataset_data, OUTPUT_DIR)
-    process_voting_1ofn(trained_models, dataset_data, OUTPUT_DIR)
+    # FASE 2: Processa le configurazioni
+    
+    # Coppie Static
+    process_coppie(trained_models, dataset_data, OUTPUT_DIR,
+                   COPPIE_STATIC_GRUPPO1, 'static', 'CoppieStaticGruppo1')
+    process_coppie(trained_models, dataset_data, OUTPUT_DIR,
+                   COPPIE_STATIC_GRUPPO2, 'static', 'CoppieStaticGruppo2')
+    
+    # Coppie Percentile
+    process_coppie(trained_models, dataset_data, OUTPUT_DIR,
+                   COPPIE_PERCENTILE_GRUPPO1, 'percentile', 'CoppiePercentileGruppo1')
+    process_coppie(trained_models, dataset_data, OUTPUT_DIR,
+                   COPPIE_PERCENTILE_GRUPPO2, 'percentile', 'CoppiePercentileGruppo2')
+    
+    # Triple Static
+    process_triple(trained_models, dataset_data, OUTPUT_DIR,
+                   TRIPLE_STATIC_GRUPPO1, 'static', 'TripleStaticGruppo1')
+    process_triple(trained_models, dataset_data, OUTPUT_DIR,
+                   TRIPLE_STATIC_GRUPPO2, 'static', 'TripleStaticGruppo2')
+    
+    # Triple Percentile
+    process_triple(trained_models, dataset_data, OUTPUT_DIR,
+                   TRIPLE_PERCENTILE_GRUPPO1, 'percentile', 'TriplePercentileGruppo1')
+    process_triple(trained_models, dataset_data, OUTPUT_DIR,
+                   TRIPLE_PERCENTILE_GRUPPO2, 'percentile', 'TriplePercentileGruppo2')
     
     elapsed = time.time() - start_time
     print(f"\n{'='*70}")
     print(f"COMPLETATO in {elapsed:.1f} secondi")
     print(f"{'='*70}")
+    print(f"\nFile generati in: {OUTPUT_DIR}")
 
 
 if __name__ == "__main__":
